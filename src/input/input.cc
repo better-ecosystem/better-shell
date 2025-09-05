@@ -1,8 +1,12 @@
-#include "input/input.hh"
 #include <iostream>
+#include <csignal>
 #include <unistd.h>
+#include "input/input.hh"
 
 using input::Handler;
+
+
+Handler *Handler::m_handler_instance { nullptr };
 
 
 Handler::Handler( std::istream *p_stream ) :
@@ -18,6 +22,9 @@ Handler::Handler( std::istream *p_stream ) :
         newt.c_cc[VTIME] = 0;
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
         m_is_term = true;
+
+        m_handler_instance = this;
+        std::signal(SIGINT, Handler::sigint_handler);
     }
 }
 
@@ -32,9 +39,10 @@ Handler::read( std::string &p_str ) -> size_t
     char c;
 
     while (reading) {
-        if (pbuf->sgetc() == EOF) {
-            reading = false;
-            break;
+        /* Theres no EOF, because ICANON is disabled. */
+        if (pbuf->sgetc() == 4) {
+            std::cerr << "[EXIT]: " << APP_NAME << '\n';
+            std::exit(0);
         }
 
         c = pbuf->sbumpc();
@@ -55,3 +63,13 @@ Handler::read( std::string &p_str ) -> size_t
 
 Handler::~Handler()
 { if (m_is_term) tcsetattr(STDIN_FILENO, TCSANOW, &m_old_term); }
+
+
+void
+Handler::sigint_handler( int p_sig )
+{
+    if (p_sig == SIGINT && m_handler_instance) {
+        std::cerr << "^C\n";
+        std::signal(SIGINT, Handler::sigint_handler);
+    }
+}

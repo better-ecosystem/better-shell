@@ -5,10 +5,10 @@
 auto
 main( int p_argc, char **p_argv ) -> int
 {
-    input::Handler handler {};
+    input::Handler handler { &std::cin };
     std::string str;
 
-    while (handler.read(std::cin, str)) {
+    while (handler.read(str)) {
         std::cout << str << std::endl;
     }
 

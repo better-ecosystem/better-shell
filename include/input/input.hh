@@ -31,5 +31,10 @@ namespace input
         /* Might be uninitialized */
         bool    m_is_term;
         termios m_old_term;
+
+        static Handler *m_handler_instance;
+
+
+        static void sigint_handler( int p_sig );
     };
 }
