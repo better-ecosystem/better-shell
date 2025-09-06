@@ -1,13 +1,23 @@
 #pragma once
+#include <cstdint>
 #include <istream>
 #include <string>
 #include <termios.h>
+
+#define EOT 4
 
 
 namespace input
 {
     class Handler
     {
+        enum BracketType : uint8_t
+        {
+            BRACKET_SINGLE,
+            BRACKET_DOUBLE,
+            BRACKET_NONE,
+        };
+
     public:
         /**
          * @param p_stream The stream the handler will read into.
@@ -25,12 +35,26 @@ namespace input
          */
         auto read( std::string &p_str ) -> size_t;
 
+
+        void exit();
+
     private:
         std::istream *m_stream;
 
         /* Might be uninitialized */
         bool    m_is_term;
         termios m_old_term;
+
+
+        /**
+         * @brief Handles arrow key inputs
+         *
+         * @param p_str Buffer string passed to @e read .
+         * @return true on success, false on EOT.
+         */
+        auto handle_arrows( const std::string &p_str,
+                            std::streambuf    *p_sbuf ) -> bool;
+
 
         static Handler *m_handler_instance;
 

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <csignal>
+#include <array>
 #include <unistd.h>
 #include "input/input.hh"
 
@@ -29,6 +30,10 @@ Handler::Handler( std::istream *p_stream ) :
 }
 
 
+Handler::~Handler()
+{ if (m_is_term) tcsetattr(STDIN_FILENO, TCSANOW, &m_old_term); }
+
+
 auto
 Handler::read( std::string &p_str ) -> size_t
 {
@@ -36,18 +41,23 @@ Handler::read( std::string &p_str ) -> size_t
     std::streambuf *pbuf { m_stream->rdbuf() };
 
     bool reading { true };
+    BracketType bracket { BRACKET_NONE };
     char c;
 
     while (reading) {
         /* Theres no EOF, because ICANON is disabled. */
-        if (pbuf->sgetc() == 4) {
-            std::cerr << "[EXIT]: " << APP_NAME << '\n';
-            std::exit(0);
-        }
+        if (pbuf->sgetc() == EOT)
+            this->exit();
 
         c = pbuf->sbumpc();
+        if (m_is_term) std::cerr << c;
 
-        if (m_is_term) std::cout << c;
+        if (c == '\x1b') {
+            if (!handle_arrows(p_str, pbuf))
+                this->exit();
+            continue;
+        }
+
 
         if (c == '\n') {
             p_str += c;
@@ -61,8 +71,42 @@ Handler::read( std::string &p_str ) -> size_t
 }
 
 
-Handler::~Handler()
-{ if (m_is_term) tcsetattr(STDIN_FILENO, TCSANOW, &m_old_term); }
+void
+Handler::exit()
+{
+    std::cerr << "[EXIT]: " << APP_NAME << '\n';
+    std::exit(0);
+}
+
+
+auto
+Handler::handle_arrows( const std::string &p_str,
+                        std::streambuf    *p_sbuf ) -> bool
+{
+    std::array<char, 8> buff;
+    for (uint16_t i { 0 }; i < buff.size(); i++) {
+        if (p_sbuf->sgetc() == EOT) return false;
+
+        buff[i] = p_sbuf->sbumpc();
+        if ((buff[i] >= 'A' && buff[i] <= 'Z') || buff[i] == '~') {
+            buff[++i] = '\0';
+            break;
+        }
+    }
+
+    std::string seq { buff.data() };
+    if      (seq == "[A"   ) {}
+    else if (seq == "[B"   ) {}
+    else if (seq == "[C"   ) std::cerr << "\033[C";
+    else if (seq == "[D"   ) std::cerr << "\033[D";
+    else if (seq == "[1;5A") {}
+    else if (seq == "[1;5B") {}
+    else if (seq == "[1;5C") std::cerr << "<CTRL+RIGHT>";
+    else if (seq == "[1;5D") std::cerr << "<CTRL+LEFT>";
+    else std::cout << "<ESC " << seq << ">";
+
+    return true;
+}
 
 
 void
