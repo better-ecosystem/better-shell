@@ -1,5 +1,6 @@
 #include <iostream>
 #include <csignal>
+#include <format>
 #include <array>
 #include <unistd.h>
 #include "input/input.hh"
@@ -110,11 +111,11 @@ Handler::handle_arrows( const std::string &p_str,
     else if (seq == "[B"   ) {}
     else if (seq == "[C"   ) {
         std::cerr << "\033[C";
-        p_cursor--;
+        p_cursor++;
     }
     else if (seq == "[D"   ) {
         std::cerr << "\033[D";
-        p_cursor++;
+        p_cursor--;
     }
     else if (seq == "[1;5A") {}
     else if (seq == "[1;5B") {}
@@ -137,7 +138,14 @@ Handler::handle_backspace( std::string &p_str,
         p_cursor--;
 
         if (!m_is_term) return;
-        std::cerr << "\033[D";
+
+        uint32_t rm_str { 1 };
+        if (p_cursor + 1 < p_str.length()) {
+            std::string right { p_str.substr(p_cursor + 1) };
+            rm_str = right.length() + 1;
+        }
+
+        std::cerr << std::format("\033[{}D", rm_str);
         std::cerr << "\033[s";
         std::cerr << p_str.substr(p_cursor);
         std::cerr << ' ';

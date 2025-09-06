@@ -10,6 +10,7 @@ main( int p_argc, char **p_argv ) -> int
 
     while (handler.read(str)) {
         std::cout << str << std::endl;
+        std::cerr << "$ ";
     }
 
     return 0;
