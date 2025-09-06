@@ -19,6 +19,7 @@ subdir('src/input')
 
 files = files(
     'src/main.cc',
+    'src/utils.cc',
 ) + input_files
 
 executable('better-shell', files,

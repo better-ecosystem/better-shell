@@ -43,6 +43,7 @@ Handler::read( std::string &p_str ) -> size_t
     bool reading { true };
     BracketType bracket { BRACKET_NONE };
     char c;
+    size_t cursor { 0 };
 
     while (reading) {
         /* Theres no EOF, because ICANON is disabled. */
@@ -50,11 +51,20 @@ Handler::read( std::string &p_str ) -> size_t
             this->exit();
 
         c = pbuf->sbumpc();
-        if (m_is_term) std::cerr << c;
+        if (m_is_term) {
+            std::cerr << c;
+            cursor++;
+        }
 
         if (c == '\x1b') {
-            if (!handle_arrows(p_str, pbuf))
+            if (!handle_arrows(p_str, cursor, pbuf))
                 this->exit();
+            continue;
+        }
+
+        /* Backspace */
+        if (c == 0x7f || c == 0x08) {
+            handle_backspace(p_str, cursor);
             continue;
         }
 
@@ -81,6 +91,7 @@ Handler::exit()
 
 auto
 Handler::handle_arrows( const std::string &p_str,
+                        size_t            &p_cursor,
                         std::streambuf    *p_sbuf ) -> bool
 {
     std::array<char, 8> buff;
@@ -97,15 +108,41 @@ Handler::handle_arrows( const std::string &p_str,
     std::string seq { buff.data() };
     if      (seq == "[A"   ) {}
     else if (seq == "[B"   ) {}
-    else if (seq == "[C"   ) std::cerr << "\033[C";
-    else if (seq == "[D"   ) std::cerr << "\033[D";
+    else if (seq == "[C"   ) {
+        std::cerr << "\033[C";
+        p_cursor--;
+    }
+    else if (seq == "[D"   ) {
+        std::cerr << "\033[D";
+        p_cursor++;
+    }
     else if (seq == "[1;5A") {}
     else if (seq == "[1;5B") {}
-    else if (seq == "[1;5C") std::cerr << "<CTRL+RIGHT>";
+    else if (seq == "[1;5C") {
+        
+    }
     else if (seq == "[1;5D") std::cerr << "<CTRL+LEFT>";
     else std::cout << "<ESC " << seq << ">";
 
     return true;
+}
+
+
+void
+Handler::handle_backspace( std::string &p_str,
+                           size_t      &p_cursor )
+{
+    if (p_cursor > 0) {
+        p_str.erase(p_cursor - 1, 1);
+        p_cursor--;
+
+        if (!m_is_term) return;
+        std::cerr << "\033[D";
+        std::cerr << "\033[s";
+        std::cerr << p_str.substr(p_cursor);
+        std::cerr << ' ';
+        std::cerr << "\033[u";
+    }
 }
 
 

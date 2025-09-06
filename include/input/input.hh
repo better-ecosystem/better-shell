@@ -49,11 +49,23 @@ namespace input
         /**
          * @brief Handles arrow key inputs
          *
-         * @param p_str Buffer string passed to @e read .
+         * @param p_str    Buffer string passed to @e read .
+         * @param p_cursor Cursor position.
          * @return true on success, false on EOT.
          */
         auto handle_arrows( const std::string &p_str,
+                            size_t            &p_cursor,
                             std::streambuf    *p_sbuf ) -> bool;
+
+
+        /**
+         * @brief Handles backspace inputs
+         *
+         * @param p_str    Buffer string passed to @e read .
+         * @param p_cursor Cursor position.
+         */
+        void handle_backspace( std::string &p_str,
+                               size_t      &p_cursor );
 
 
         static Handler *m_handler_instance;
