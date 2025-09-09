@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <iostream>
 #include <csignal>
 
@@ -6,7 +5,6 @@
 
 #include "input/terminal.hh"
 #include "print.hh"
-#include "utils.hh"
 
 using input::term::Handler;
 
@@ -53,9 +51,8 @@ namespace
                 idx++;
             }
 
-            if (i < p_text.size() && p_text[i] == '\n') {
-                i++; idx++; line++;
-            }
+            if (i < p_text.size() && p_text[i] == '\n')
+                i++, idx++, line++;
         }
 
         return 0;
@@ -194,73 +191,27 @@ Handler::handle_arrow( const std::string &p_str,
     auto seq_buff { get_ansi_sequence(p_sbuf) };
     if (!seq_buff) return false;
     std::string seq { *seq_buff };
+    const bool ctrl { seq.starts_with("[1;5") };
 
-    /*
-     * UP: If not on the first line, cursor should move up 1 line,
-     *     else, move to the previously ran command.
-    */
-    if (seq == "[A") {
-        return true;
-    }
-
-    /*
-     * DOWN: If not on the last line, cursor should move down 1 line,
-     *       else, move to the next ran command, or do nothing.
-    */
-    if (seq == "[B") {
-        return true;
-
-    }
-
-    /*
-     * RIGHT: If not on the last character of the line, move cursor right once,
-     *        else, move to the next line, and put cursor at
-     *        the start of the line, else do nothing.
-    */
-    if (seq == "[C") {
-        if (m_pos.x < utils::get_line(p_str, m_pos.y).length()) {
-            io::print("\033[C");
-            m_pos.x++;
-
+    /* UP */
+    if (seq.back() == 'A') {
+        if (m_pos.handle_arrows(CursorPosition::DIR_UP, p_str, ctrl))
             return true;
-        }
 
-        int64_t line_amount { std::ranges::count(p_str, '\n') };
-        if (m_pos.y < line_amount) {
-            io::print("\033[0G");
-            io::print("\033[B");
-
-            m_pos.x = 0;
-            m_pos.y++;
-        }
-
-        return true;
+        /* Handle history stuff */
     }
 
-    /*
-     * LEFT: If not on the first character of the line, move cursor left once,
-     *       else, move to the previous line, and put cursor at
-     *       the last character of the line, else do nothing.
-    */
-    if (seq == "[D") {
-        if (m_pos.x > 0) {
-            io::print("\033[D");
-            m_pos.x--;
-
+    if (seq.back() == 'B') {
+        if (m_pos.handle_arrows(CursorPosition::DIR_DOWN, p_str, ctrl))
             return true;
-        }
 
-        if (m_pos.y > 0) {
-            io::print("\033[A");
-            m_pos.y--;
-
-            m_pos.x = utils::get_line(p_str, m_pos.y).length() - 1;
-            io::print("\033[{}G", m_pos.x + 1);
-        }
-
-        return true;
+        /* Handle history stuff */
     }
 
+    if (seq.back() == 'C')
+        return m_pos.handle_arrows(CursorPosition::DIR_RIGHT, p_str, ctrl);
+    if (seq.back() == 'D')
+        return m_pos.handle_arrows(CursorPosition::DIR_LEFT, p_str, ctrl);
     return true;
 }
 

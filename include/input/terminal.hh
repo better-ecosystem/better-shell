@@ -13,16 +13,53 @@ namespace input::term
 
     struct CursorPosition
     {
+        enum Direction : uint8_t
+        {
+            DIR_UP    = 'A',
+            DIR_DOWN  = 'B',
+            DIR_RIGHT = 'C',
+            DIR_LEFT  = 'D',
+        };
+
+
         uint32_t x { 0 };
         uint32_t y { 0 };
 
         uint32_t last_x { 0 };
+        uint32_t max_x  { 0 };
 
 
         [[nodiscard]]
-        auto
-        is_zero() const noexcept -> bool
-        { return x == 0 && y == 0; }
+        auto is_zero() const noexcept -> bool;
+
+
+        /**
+         * @brief Handles arrow key input from the shell.
+         *
+         * @return true if something has changed,
+         *         or false if nothing has changed.
+         */
+        [[nodiscard]]
+        auto handle_arrows( Direction          p_dir,
+                            const std::string &p_str,
+                            bool               p_ctrl ) -> bool;
+
+
+    private:
+        [[nodiscard]]
+        auto handle_up_arrow() -> bool;
+
+
+        [[nodiscard]]
+        auto handle_down_arrow( const std::string &p_str ) -> bool;
+
+
+        [[nodiscard]]
+        auto handle_right_arrow( const std::string &p_str, bool p_ctrl ) -> bool;
+
+
+        [[nodiscard]]
+        auto handle_left_arrow( const std::string &p_str, bool p_ctrl ) -> bool;
     };
 
     enum ReturnType : uint8_t
