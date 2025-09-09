@@ -1,8 +1,11 @@
 #pragma once
+#ifndef __BetterShell__input_input_hh
+#define __BetterShell__input_input_hh
 #include <cstdint>
 #include <istream>
 #include <string>
 #include <termios.h>
+#include "input/terminal.hh"
 
 #define EOT 4
 
@@ -25,7 +28,6 @@ namespace input
          *          is undefined behaviour.
          */
         Handler( std::istream *p_stream );
-        ~Handler();
 
 
         /**
@@ -36,41 +38,25 @@ namespace input
         auto read( std::string &p_str ) -> size_t;
 
 
-        void exit();
+        /**
+         * @return true if the shell is supposed to exit, false otherwise.
+         */
+        [[nodiscard]]
+        auto should_exit() -> bool;
+
 
     private:
         std::istream *m_stream;
+        bool m_exit;
 
-        /* Might be uninitialized */
-        bool    m_is_term;
-        termios m_old_term;
-
-
-        /**
-         * @brief Handles arrow key inputs
-         *
-         * @param p_str    Buffer string passed to @e read .
-         * @param p_cursor Cursor position.
-         * @return true on success, false on EOT.
-         */
-        auto handle_arrows( const std::string &p_str,
-                            size_t            &p_cursor,
-                            std::streambuf    *p_sbuf ) -> bool;
+        term::Handler m_terminal_handler;
 
 
         /**
-         * @brief Handles backspace inputs
-         *
-         * @param p_str    Buffer string passed to @e read .
-         * @param p_cursor Cursor position.
+         * @brief Exits the shell.
          */
-        void handle_backspace( std::string &p_str,
-                               size_t      &p_cursor );
-
-
-        static Handler *m_handler_instance;
-
-
-        static void sigint_handler( int p_sig );
+        void exit();
     };
 }
+
+#endif /* __BetterShell__input_input_hh */

@@ -1,3 +1,4 @@
+#include <format>
 #include "utils.hh"
 
 
@@ -50,5 +51,25 @@ namespace utils
                           && !std::isspace(p_str[i - 1])) i--;
 
         return -(start - i);
+    }
+
+
+    auto
+    get_line( const std::string &p_str, size_t p_idx ) -> std::string
+    {
+        size_t line_start { 0 };
+        size_t line_no    { 0 };
+
+        for (size_t i = 0; i <= p_str.size(); i++)
+            if (i == p_str.size() || p_str[i] == '\n') {
+                if (line_no == p_idx)
+                    return p_str.substr(line_start, i - line_start);
+                line_no++;
+                line_start = i + 1;
+            }
+
+        throw std::out_of_range(
+            std::format("p_idx ({}) is larger than the "
+                        "number of lines in p_str.", p_idx));
     }
 }
