@@ -195,18 +195,28 @@ Handler::handle_arrow( const std::string &p_str,
     if (!seq_buff) return false;
     std::string seq { *seq_buff };
 
-    /* Up */
+    /*
+     * UP: If not on the first line, cursor should move up 1 line,
+     *     else, move to the previously ran command.
+    */
     if (seq == "[A") {
         return true;
     }
 
-    /* Down */
+    /*
+     * DOWN: If not on the last line, cursor should move down 1 line,
+     *       else, move to the next ran command, or do nothing.
+    */
     if (seq == "[B") {
         return true;
 
     }
 
-    /* Right */
+    /*
+     * RIGHT: If not on the last character of the line, move cursor right once,
+     *        else, move to the next line, and put cursor at
+     *        the start of the line, else do nothing.
+    */
     if (seq == "[C") {
         if (m_pos.x < utils::get_line(p_str, m_pos.y).length()) {
             io::print("\033[C");
@@ -227,7 +237,11 @@ Handler::handle_arrow( const std::string &p_str,
         return true;
     }
 
-    /* Left */
+    /*
+     * LEFT: If not on the first character of the line, move cursor left once,
+     *       else, move to the previous line, and put cursor at
+     *       the last character of the line, else do nothing.
+    */
     if (seq == "[D") {
         if (m_pos.x > 0) {
             io::print("\033[D");

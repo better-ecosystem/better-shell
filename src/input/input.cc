@@ -27,7 +27,7 @@ Handler::read( std::string &p_str ) -> size_t
 
     while (true) {
         /* Theres no EOF, because ICANON is disabled. */
-        if (is_input_end(pbuf->sgetc())) {
+        if (auto code { pbuf->sgetc() }; code == EOT || code == EOF) {
             this->exit();
             break;
         }
