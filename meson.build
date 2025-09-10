@@ -6,7 +6,9 @@ project('Better Shell', 'cpp',
         license_files: [ 'COPYING' ])
 
 add_project_dependencies([
-    dependency('jsoncpp')
+    dependency('jsoncpp'),
+    dependency('giomm-2.68'),
+    dependency('glibmm-2.68'),
 ], language: 'cpp')
 
 add_project_arguments([
@@ -16,11 +18,12 @@ add_project_arguments([
 ], language: 'cpp')
 
 subdir('src/input')
+subdir('src/parser')
 
 files = files(
     'src/main.cc',
     'src/utils.cc',
-) + input_files
+) + input_files + parser_files
 
 executable('better-shell', files,
            include_directories: include_directories('include'),

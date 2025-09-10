@@ -1,4 +1,5 @@
 #include <iostream>
+#include <giomm/init.h>
 #include "input/input.hh"
 #include "print.hh"
 
@@ -6,6 +7,8 @@
 auto
 main( int, char ** ) -> int
 {
+    Gio::init();
+
     input::Handler handler { &std::cin };
     std::string str;
 
