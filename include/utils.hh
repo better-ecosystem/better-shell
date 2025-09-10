@@ -25,4 +25,11 @@ namespace utils
      */
     [[nodiscard]]
     auto get_line( const std::string &p_str, size_t p_idx ) -> std::string;
+
+
+    /**
+     * @brief Checks whether @p p_str contains a unicode utf8 value.
+     */
+    [[nodiscard]]
+    auto contains_unicode( std::string_view p_str ) -> bool;
 }

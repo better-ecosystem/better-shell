@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <format>
 #include "utils.hh"
 
@@ -7,6 +8,27 @@ namespace
     auto
     is_word_char( char c ) -> bool
     { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; }
+
+
+    [[nodiscard]]
+    auto
+    is_valid_utf8( std::string_view p_str ) -> bool
+    {
+        int expected { 0 };
+
+        for (unsigned char c : p_str) {
+            if (expected == 0) {
+                if      ((c >> 5) == 0b110)   expected = 1;
+                else if ((c >> 4) == 0b1110)  expected = 2;
+                else if ((c >> 3) == 0b11110) expected = 3;
+                else if ((c >> 7)) return false;
+            } else {
+                if ((c >> 6) != 0b10) return false;
+                expected--;
+            }
+        }
+        return expected == 0;
+    }
 }
 
 
@@ -71,5 +93,14 @@ namespace utils
         throw std::out_of_range(
             std::format("p_idx ({}) is larger than the "
                         "number of lines in p_str.", p_idx));
+    }
+
+
+    auto
+    contains_unicode( std::string_view p_str ) -> bool
+    {
+        if (!is_valid_utf8(p_str)) return false;
+        return std::ranges::any_of(p_str,
+               []( unsigned char p_c ){ return p_c & 0x80; });
     }
 }

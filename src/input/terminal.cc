@@ -11,54 +11,6 @@ using input::term::Handler;
 
 namespace
 {
-    [[nodiscard]]
-    auto
-    xy_to_character_index_u8( const std::string &p_text,
-                              size_t             p_x,
-                              size_t             p_y ) -> size_t
-    {
-        size_t line { 0 };
-        size_t idx  { 0 };
-
-        for (size_t i { 0 }; i < p_text.size();) {
-            if (line == p_y) {
-                size_t char_x { 0 };
-
-                while (i < p_text.size() && char_x < p_x && p_text[i] != '\n') {
-                    unsigned char c { static_cast<unsigned char>(p_text[i]) };
-
-                    int advance {
-                        (c < 0x80) ? 1 :
-                        (c < 0xE0) ? 2 :
-                        (c < 0xF0) ? 3 : 4 };
-
-                    i += advance;
-                    char_x++; idx++;
-                }
-
-                if (char_x != p_x)
-                    return 0;
-                return idx;
-            }
-
-            while (i < p_text.size() && p_text[i] != '\n') {
-                unsigned char c { static_cast<unsigned char>(p_text[i]) };
-                int advance {
-                    (c < 0x80) ? 1 :
-                    (c < 0xE0) ? 2 :
-                    (c < 0xF0) ? 3 : 4 };
-                i += advance;
-                idx++;
-            }
-
-            if (i < p_text.size() && p_text[i] == '\n')
-                i++, idx++, line++;
-        }
-
-        return 0;
-    }
-
-
     /**
      * @return `std::nullopt` on EOT, or a valid `std::string`
      *          containing the ANSI sequence.
@@ -137,6 +89,22 @@ Handler::handle( const char     &p_current,
 {
     if (!m_is_term) return RETURN_NONE;
 
+    if (p_current == '\\') {
+        m_escaped = true;
+        io::print("{}", p_current);
+        insert_char_to_cursor(p_str, p_current);
+        return RETURN_CONTINUE;
+    }
+
+    if (p_current == '\n') {
+        io::println("");
+
+        if (m_escaped) {
+            insert_char_to_cursor(p_str, p_current);
+            return RETURN_CONTINUE;
+        } else return RETURN_DONE;
+    }
+
     /* ANSI escape code */
     if (p_current == '\033') {
         if (!handle_arrow(p_str, p_sbuf)) return RETURN_EXIT;
@@ -149,8 +117,10 @@ Handler::handle( const char     &p_current,
         return RETURN_CONTINUE;
     }
 
-    io::print("{}", p_current);
+    io::print("\033[s{}{}\033[u\033[C", p_current, p_str.substr(m_pos.x));
     insert_char_to_cursor(p_str, p_current);
+
+    m_escaped = false;
 
     return RETURN_NONE;
 }
@@ -159,10 +129,13 @@ Handler::handle( const char     &p_current,
 void
 Handler::insert_char_to_cursor( std::string &p_str, char p_c )
 {
-    size_t idx { xy_to_character_index_u8(p_str, m_pos.x, m_pos.y) };
+    size_t idx { m_pos.get_string_idx(p_str) };
     p_str.insert(idx, 1, p_c);
 
-    m_pos.x++;
+    if (p_c == '\n') {
+        m_pos.x = 0;
+        m_pos.y++;
+    } else m_pos.x++;
 }
 
 
@@ -172,7 +145,7 @@ Handler::handle_backspace( std::string &p_str, bool p_ctrl )
     if (m_pos.is_zero()) return;
 
     if (m_pos.x > 0) {
-        size_t idx { xy_to_character_index_u8(p_str, m_pos.x, m_pos.y) };
+        size_t idx { m_pos.get_string_idx(p_str) };
         p_str.erase(idx - 1, 1);
         m_pos.x--;
 
@@ -193,7 +166,6 @@ Handler::handle_arrow( const std::string &p_str,
     std::string seq { *seq_buff };
     const bool ctrl { seq.starts_with("[1;5") };
 
-    /* UP */
     if (seq.back() == 'A') {
         if (m_pos.handle_arrows(CursorPosition::DIR_UP, p_str, ctrl))
             return true;
@@ -208,11 +180,8 @@ Handler::handle_arrow( const std::string &p_str,
         /* Handle history stuff */
     }
 
-    if (seq.back() == 'C')
-        return m_pos.handle_arrows(CursorPosition::DIR_RIGHT, p_str, ctrl);
-    if (seq.back() == 'D')
-        return m_pos.handle_arrows(CursorPosition::DIR_LEFT, p_str, ctrl);
-    return true;
+    return m_pos.handle_arrows(CursorPosition::Direction(seq.back()),
+                               p_str, ctrl);
 }
 
 

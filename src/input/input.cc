@@ -21,11 +21,12 @@ Handler::read( std::string &p_str ) -> size_t
 
     BracketType bracket { BRACKET_NONE };
     bool escape { false };
+    bool reading { true };
     char c;
 
     m_terminal_handler.show_prompt();
 
-    while (true) {
+    while (reading) {
         /* Theres no EOF, because ICANON is disabled. */
         if (auto code { pbuf->sgetc() }; code == EOT || code == EOF) {
             this->exit();
@@ -37,6 +38,7 @@ Handler::read( std::string &p_str ) -> size_t
         switch (m_terminal_handler.handle(c, p_str, pbuf)) {
         case term::RETURN_CONTINUE: continue;
         case term::RETURN_EXIT: this->exit();
+        case term::RETURN_DONE: reading = false; continue;
         default: break;
         }
 

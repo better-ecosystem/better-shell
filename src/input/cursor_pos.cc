@@ -1,5 +1,5 @@
 #include <algorithm>
-#include "input/terminal.hh"
+#include "input/cursor_pos.hh"
 #include "print.hh"
 #include "utils.hh"
 
@@ -31,6 +31,41 @@ CursorPosition::handle_arrows( Direction          p_dir,
     case DIR_RIGHT: return handle_right_arrow(p_str, p_ctrl);
     case DIR_LEFT:  return handle_left_arrow (p_str, p_ctrl);
     }
+}
+
+
+auto
+CursorPosition::get_string_idx( const std::string &p_str ) -> size_t
+{
+    size_t line   { 0 };
+    size_t char_x { 0 };
+
+    for (size_t i = 0; i < p_str.size();) {
+        if (line == y && char_x == x) return i;
+
+        unsigned char c { static_cast<unsigned char>(p_str[i]) };
+
+        size_t advance =
+            (c < 0x80) ? 1 :
+            (c < 0xE0) ? 2 :
+            (c < 0xF0) ? 3 : 4;
+
+        if (c == '\n') {
+            if (line == y && x == 0) return i;
+            line++;
+            char_x = 0;
+            i += 1;
+            continue;
+        }
+
+        if (line == y) char_x++;
+
+        i += advance;
+    }
+
+    if (line == y && char_x == x) return p_str.size();
+
+    throw std::out_of_range("Coordinates out of range");
 }
 
 
