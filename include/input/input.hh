@@ -55,7 +55,7 @@ namespace input
         /**
          * @brief Exits the shell.
          */
-        void exit();
+        void exit( char p_code );
     };
 }
 

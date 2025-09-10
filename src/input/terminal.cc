@@ -165,23 +165,19 @@ Handler::handle_arrow( const std::string &p_str,
     if (!seq_buff) return false;
     std::string seq { *seq_buff };
     const bool ctrl { seq.starts_with("[1;5") };
+    const auto dir  { CursorPosition::Direction(seq.back()) };
 
-    if (seq.back() == 'A') {
-        if (m_pos.handle_arrows(CursorPosition::DIR_UP, p_str, ctrl))
-            return true;
+    /* dir is either C/D */
+    if (dir >= 'C')
+        return m_pos.handle_arrows(dir, p_str, ctrl);
+    return m_pos.handle_arrows(dir, p_str, ctrl) || handle_history(p_str);
+}
 
-        /* Handle history stuff */
-    }
 
-    if (seq.back() == 'B') {
-        if (m_pos.handle_arrows(CursorPosition::DIR_DOWN, p_str, ctrl))
-            return true;
-
-        /* Handle history stuff */
-    }
-
-    return m_pos.handle_arrows(CursorPosition::Direction(seq.back()),
-                               p_str, ctrl);
+auto
+Handler::handle_history( const std::string &p_current ) -> bool
+{
+    return true;
 }
 
 

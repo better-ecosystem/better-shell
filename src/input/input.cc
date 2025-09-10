@@ -29,7 +29,7 @@ Handler::read( std::string &p_str ) -> size_t
     while (reading) {
         /* Theres no EOF, because ICANON is disabled. */
         if (auto code { pbuf->sgetc() }; code == EOT || code == EOF) {
-            this->exit();
+            this->exit(code);
             break;
         }
 
@@ -37,7 +37,7 @@ Handler::read( std::string &p_str ) -> size_t
 
         switch (m_terminal_handler.handle(c, p_str, pbuf)) {
         case term::RETURN_CONTINUE: continue;
-        case term::RETURN_EXIT: this->exit();
+        case term::RETURN_EXIT: this->exit(c);
         case term::RETURN_DONE: reading = false; continue;
         default: break;
         }
@@ -61,8 +61,11 @@ Handler::should_exit() -> bool
 
 
 void
-Handler::exit()
+Handler::exit( char p_code )
 {
-    io::println(std::cerr, "\n[EXIT]: {}", APP_NAME);
+    const char *type { p_code == EOT ? "EOT" :
+                      (p_code == EOF ? "EOF" : "EXIT") };
+    io::println(std::cerr, "\n[{}]: {} ({})",
+                type, APP_ID, APP_VERSION);
     m_exit = true;
 }

@@ -61,6 +61,8 @@ namespace input::term
         auto handle_arrow( const std::string &p_str,
                            std::streambuf    *p_sbuf ) -> bool;
 
+        auto handle_history( const std::string &p_current ) -> bool;
+
         static Handler *m_handler_instance;
         static void sigint_handler( int p_sig );
     };
