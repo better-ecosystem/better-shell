@@ -1,8 +1,8 @@
-#include <format>
 #include <glibmm.h>
 #include <giomm.h>
 #include "parser/parser.hh"
 
+using namespace std::string_literals;
 using parser::Token;
 
 
@@ -57,7 +57,7 @@ namespace
         while (first_close < p_str.length() && p_str[first_close] != '}')
             first_close++;
 
-        if (first_close == p_str.length() - 1)
+        if (first_close == p_str.length())
             throw std::invalid_argument("Substitution not closed.");
 
         last_open = first_close;
@@ -92,16 +92,30 @@ namespace
 
         p_str.replace(last_open, (first_close - last_open) + 1, output);
     }
+
+
+    [[nodiscard]]
+    auto
+    get_command( const std::string &p_str ) -> std::string
+    {
+        std::istringstream iss { p_str };
+        std::string word;
+        iss >> word;
+        return word;
+    }
 }
 
 
 auto
 Token::tokenize( std::string &p_str ) -> std::vector<Token>
 {
+    const size_t LEN { p_str.length() };
+
     std::vector<Token> tokens;
+    tokens.emplace_back(TokenType::COMMAND, get_command(p_str));
 
     std::string word;
-    for (size_t i { 0 }; i < p_str.length(); i++) {
+    for (size_t i { 0 }; i < LEN; i++) {
         if (std::isspace(p_str[i])) continue;
 
         /* Handle substitution. */
@@ -109,12 +123,38 @@ Token::tokenize( std::string &p_str ) -> std::vector<Token>
             size_t end_idx = find_last_close_bracket(p_str, i + 1);
             std::string cp_str { p_str.substr(i, (end_idx - i) + 1) };
 
-
             while (cp_str.find("${") != std::string::npos)
                 parse_substitution(cp_str, 0);
             tokens.emplace_back(TokenType::SUBSTITUTE, cp_str);
             i = end_idx;
             continue;
         }
+
+        /* Handle flags */
+        if (p_str[i] == '-' && (std::isspace(p_str[i - 1]))) {
+            /* Handle long arg { --help foo, --version } */
+            if (i + 1 < LEN && p_str[i + 1] == '-') {
+                size_t len { 2 };
+                while (i + len < LEN && !std::isspace(p_str[i + len]))
+                    len++;
+                std::string flag { p_str.substr(i, len) };
+                i += len;
+
+                tokens.emplace_back(TokenType::FLAG, flag);
+                continue;
+            }
+
+            /* Handle clustered short options: -abc -> -a, -b, -c */
+            size_t len = 1;
+            while (i + len < LEN && !std::isspace(p_str[i + len])
+                                    && p_str[i + len] != '=') {
+                tokens.emplace_back(TokenType::FLAG, "-"s + p_str[i + len]);
+                len++;
+            }
+            i += len;
+            continue;
+        }
     }
+
+    return tokens;
 }
