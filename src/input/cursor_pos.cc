@@ -35,7 +35,7 @@ CursorPosition::handle_arrows( Direction          p_dir,
 
 
 auto
-CursorPosition::get_string_idx( const std::string &p_str ) -> size_t
+CursorPosition::get_string_idx( const std::string &p_str ) const -> size_t
 {
     size_t line   { 0 };
     size_t char_x { 0 };
@@ -120,8 +120,8 @@ CursorPosition::handle_right_arrow( const std::string &p_str,
         std::string line { utils::get_line(p_str, y) };
         const size_t len { line.length() };
 
-        if (x <= len && is_word_bound(x)) x++;
-        while (x < len && !is_word_bound(x)) x++;
+        if (x <= len && is_word_bound(static_cast<char>(x))) x++;
+        while (x < len && !is_word_bound(static_cast<char>(x))) x++;
         max_x = x;
 
         io::print("\033[{}C", x - start_x);

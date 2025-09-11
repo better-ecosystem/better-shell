@@ -20,10 +20,10 @@ namespace
     get_ansi_sequence( std::streambuf *p_sbuf ) -> std::optional<std::string>
     {
         std::array<char, 8> buff;
-        for (uint16_t i { 0 }; i < buff.size(); i++) {
+        for (size_t i { 0 }; i < buff.size(); i++) {
             if (p_sbuf->sgetc() == EOT) return std::nullopt;
 
-            buff[i] = p_sbuf->sbumpc();
+            buff[i] = static_cast<char>(p_sbuf->sbumpc());
             if ((buff[i] >= 'A' && buff[i] <= 'Z') || buff[i] == '~') {
                 buff[++i] = '\0';
                 break;
@@ -40,7 +40,7 @@ Handler::Handler( std::istream *p_stream ) :
     m_stream(p_stream),
     m_is_term(false)
 {
-    if (p_stream->rdbuf() == std::cin.rdbuf() && isatty(STDIN_FILENO)) {
+    if (p_stream->rdbuf() == std::cin.rdbuf() && isatty(STDIN_FILENO) != 0) {
         tcgetattr(STDIN_FILENO, &m_old_term);
 
         termios newt { m_old_term };
@@ -62,7 +62,7 @@ Handler::~Handler()
 
 
 auto
-Handler::is_active() -> bool
+Handler::is_active() const -> bool
 { return m_is_term; }
 
 
@@ -102,7 +102,8 @@ Handler::handle( const char     &p_current,
         if (m_escaped) {
             insert_char_to_cursor(p_str, p_current);
             return RETURN_CONTINUE;
-        } else return RETURN_DONE;
+        }
+        return RETURN_DONE;
     }
 
     /* ANSI escape code */
@@ -163,7 +164,8 @@ Handler::handle_arrow( const std::string &p_str,
 {
     auto seq_buff { get_ansi_sequence(p_sbuf) };
     if (!seq_buff) return false;
-    std::string seq { *seq_buff };
+
+    const std::string &seq { *seq_buff };
     const bool ctrl { seq.starts_with("[1;5") };
     const auto dir  { CursorPosition::Direction(seq.back()) };
 
@@ -184,7 +186,7 @@ Handler::handle_history( const std::string &p_current ) -> bool
 void
 Handler::sigint_handler( int p_sig )
 {
-    if (p_sig == SIGINT && m_handler_instance) {
+    if (p_sig == SIGINT && m_handler_instance != nullptr) {
         if (!m_handler_instance->is_active()) return;
 
         io::println("^C");

@@ -6,8 +6,8 @@
 namespace
 {
     auto
-    is_word_char( char c ) -> bool
-    { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; }
+    is_word_char( char p_c ) -> bool
+    { return (std::isalnum(p_c) != 0) || p_c == '_'; }
 
 
     [[nodiscard]]
@@ -21,7 +21,7 @@ namespace
                 if      ((c >> 5) == 0b110)   expected = 1;
                 else if ((c >> 4) == 0b1110)  expected = 2;
                 else if ((c >> 3) == 0b11110) expected = 3;
-                else if ((c >> 7)) return false;
+                else if ((c >> 7) != 0) return false;
             } else {
                 if ((c >> 6) != 0b10) return false;
                 expected--;
@@ -47,14 +47,14 @@ namespace utils
         /* Right */
         if (p_direction == 'D') {
             if (i >= n) return 0;
-            while (i < n && std::isspace(p_str[i])) i++;
+            while (i < n && std::isspace(p_str[i]) != 0) i++;
             if (i >= n) return i - p_pos;
 
             bool in_word { is_word_char(p_str[i]) };
 
             if (in_word) while (i < n && is_word_char(p_str[i])) i++;
             else while (i < n && !is_word_char(p_str[i])
-                              && !std::isspace(p_str[i])) i++;
+                              && std::isspace(p_str[i]) != 0) i++;
 
             return i - p_pos;
         }
@@ -63,14 +63,14 @@ namespace utils
         if (i == 0) return 0;
         size_t start { i };
 
-        while (i > 0 && std::isspace(p_str[i - 1])) i--;
+        while (i > 0 && std::isspace(p_str[i - 1]) != 0) i--;
         if (i == 0) return -(start - i);
 
         bool in_word { is_word_char(p_str[i - 1]) };
 
         if (in_word) while (i > 0 && is_word_char(p_str[i - 1])) i--;
         else while (i > 0 && !is_word_char(p_str[i - 1])
-                          && !std::isspace(p_str[i - 1])) i--;
+                          && std::isspace(p_str[i - 1]) != 0) i--;
 
         return -(start - i);
     }

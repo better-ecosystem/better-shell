@@ -5,14 +5,14 @@
 
 
 auto
-main( int, char ** ) -> int
+main( int /* p_argc */, char ** /* p_argv */ ) -> int
 {
     Gio::init();
 
     input::Handler handler { &std::cin };
     std::string str;
 
-    while (handler.read(str)) {
+    while (handler.read(str) != 0U) {
         if (handler.should_exit()) break;
         io::println("{}", str);
     }

@@ -50,7 +50,7 @@ namespace input::term
          *        going out of range from the string's length.
          */
         [[nodiscard]]
-        auto get_string_idx( const std::string &p_str ) -> size_t;
+        auto get_string_idx( const std::string &p_str ) const -> size_t;
 
     private:
         [[nodiscard]]

@@ -42,7 +42,7 @@ namespace input
          * @return true if the shell is supposed to exit, false otherwise.
          */
         [[nodiscard]]
-        auto should_exit() -> bool;
+        auto should_exit() const -> bool;
 
 
     private:

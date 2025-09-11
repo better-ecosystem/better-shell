@@ -38,11 +38,11 @@ namespace input::term
        void reset();
 
 
-       void show_prompt();
+       static void show_prompt();
 
 
        [[nodiscard]]
-       auto is_active() -> bool;
+       auto is_active() const -> bool;
 
     private:
         std::istream *m_stream;

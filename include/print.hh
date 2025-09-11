@@ -9,11 +9,11 @@ namespace std { extern ostream cout; }
 
 namespace io
 {
-    template<typename ..._T_Args>
+    template<typename ...T_Args>
     inline void
-    print( std::ostream                  &p_stream,
-           std::format_string<_T_Args...> p_fmt,
-           _T_Args                   &&...p_args )
+    print( std::ostream                 &p_stream,
+           std::format_string<T_Args...> p_fmt,
+           T_Args                   &&...p_args )
     {
         auto fmt_args { std::make_format_args(p_args...) };
         std::string buff { std::vformat(p_fmt.get(), fmt_args) };
@@ -26,27 +26,27 @@ namespace io
     }
 
 
-    template<typename ..._T_Args>
+    template<typename ...T_Args>
     inline void
-    print( std::format_string<_T_Args...> p_fmt, _T_Args &&...p_args )
-    { print(std::cout, p_fmt, std::forward<_T_Args>(p_args)...); }
+    print( std::format_string<T_Args...> p_fmt, T_Args &&...p_args )
+    { print(std::cout, p_fmt, std::forward<T_Args>(p_args)...); }
 
 
-    template<typename ..._T_Args>
+    template<typename ...T_Args>
     inline void
-    println( std::ostream                  &p_stream,
-             std::format_string<_T_Args...> p_fmt,
-             _T_Args                   &&...p_args )
+    println( std::ostream                 &p_stream,
+             std::format_string<T_Args...> p_fmt,
+             T_Args                   &&...p_args )
     {
         print(p_stream, "{}\n",
-              std::format(p_fmt, std::forward<_T_Args>(p_args)...));
+              std::format(p_fmt, std::forward<T_Args>(p_args)...));
     }
 
 
-    template<typename ..._T_Args>
+    template<typename ...T_Args>
     inline void
-    println( std::format_string<_T_Args...> p_fmt, _T_Args &&...p_args )
-    { println(std::cout, p_fmt, std::forward<_T_Args>(p_args)...); }
+    println( std::format_string<T_Args...> p_fmt, T_Args &&...p_args )
+    { println(std::cout, p_fmt, std::forward<T_Args>(p_args)...); }
 }
 
 #endif /* __BetterShell__print_hh */

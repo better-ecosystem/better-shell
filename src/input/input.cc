@@ -24,16 +24,16 @@ Handler::read( std::string &p_str ) -> size_t
     bool reading { true };
     char c;
 
-    m_terminal_handler.show_prompt();
+    input::term::Handler::show_prompt();
 
     while (reading) {
         /* Theres no EOF, because ICANON is disabled. */
         if (auto code { pbuf->sgetc() }; code == EOT || code == EOF) {
-            this->exit(code);
+            this->exit(static_cast<char>(code));
             break;
         }
 
-        c = pbuf->sbumpc();
+        c = static_cast<char>(pbuf->sbumpc());
 
         switch (m_terminal_handler.handle(c, p_str, pbuf)) {
         case term::RETURN_CONTINUE: continue;
@@ -56,7 +56,7 @@ Handler::read( std::string &p_str ) -> size_t
 
 
 auto
-Handler::should_exit() -> bool
+Handler::should_exit() const -> bool
 { return m_exit; }
 
 

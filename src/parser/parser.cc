@@ -62,8 +62,8 @@ namespace
 
         last_open = first_close;
         /* This is guaranteed to find an open bracket */
-        while (!(p_str[last_open] == '$'
-              && p_str[last_open + 1] == '{')) last_open--;
+        while (p_str[last_open] != '$'
+            || p_str[last_open + 1] != '{') last_open--;
 
         /* Now last_open points to "${" and first_close points to "}" */
         const std::string cmd { p_str.substr(last_open + 2,
@@ -114,9 +114,8 @@ Token::tokenize( std::string &p_str ) -> std::vector<Token>
     std::vector<Token> tokens;
     tokens.emplace_back(TokenType::COMMAND, get_command(p_str));
 
-    std::string word;
-    for (size_t i { 0 }; i < LEN; i++) {
-        if (std::isspace(p_str[i])) continue;
+    for (size_t i { tokens.back().data.length() }; i < LEN; i++) {
+        if (std::isspace(p_str[i]) != 0) continue;
 
         /* Handle substitution. */
         if (p_str[i] == '$' && i + 1 < p_str.size() && p_str[i + 1] == '{') {
@@ -131,23 +130,20 @@ Token::tokenize( std::string &p_str ) -> std::vector<Token>
         }
 
         /* Handle flags */
-        if (p_str[i] == '-' && (std::isspace(p_str[i - 1]))) {
-            /* Handle long arg { --help foo, --version } */
+        if (p_str[i] == '-' && (std::isspace(p_str[i - 1]) != 0)) {
+            /* Handles long arg */
             if (i + 1 < LEN && p_str[i + 1] == '-') {
                 size_t len { 2 };
-                while (i + len < LEN && !std::isspace(p_str[i + len]))
+                while (i + len < LEN && std::isspace(p_str[i + len]) != 0)
                     len++;
-                std::string flag { p_str.substr(i, len) };
-                i += len;
-
-                tokens.emplace_back(TokenType::FLAG, flag);
+                tokens.emplace_back(TokenType::FLAG, p_str.substr(i, len));
                 continue;
             }
 
             /* Handle clustered short options: -abc -> -a, -b, -c */
             size_t len = 1;
-            while (i + len < LEN && !std::isspace(p_str[i + len])
-                                    && p_str[i + len] != '=') {
+            while (i + len < LEN && std::isspace(p_str[i + len]) != 0
+                                 && p_str[i + len] != '=') {
                 tokens.emplace_back(TokenType::FLAG, "-"s + p_str[i + len]);
                 len++;
             }
