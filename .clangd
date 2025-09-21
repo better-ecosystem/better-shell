@@ -15,7 +15,6 @@ Diagnostics:
         - readability-*
         - modernize-*
       Remove:
-        - clang-analyzer-alpha.*
         - readability-braces-around-statements
         - readability-identifier-length
         - readability-magic-numbers

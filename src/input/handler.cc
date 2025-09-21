@@ -1,5 +1,5 @@
 #include <iostream>
-#include "input/input.hh"
+#include "input/handler.hh"
 #include "print.hh"
 
 using input::Handler;
@@ -19,8 +19,6 @@ Handler::read( std::string &p_str ) -> size_t
     p_str.clear();
     std::streambuf *pbuf { m_stream->rdbuf() };
 
-    BracketType bracket { BRACKET_NONE };
-    bool escape { false };
     bool reading { true };
     char c;
 

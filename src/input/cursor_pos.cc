@@ -120,11 +120,12 @@ CursorPosition::handle_right_arrow( const std::string &p_str,
         std::string line { utils::get_line(p_str, y) };
         const size_t len { line.length() };
 
-        if (x <= len && is_word_bound(static_cast<char>(x))) x++;
-        while (x < len && !is_word_bound(static_cast<char>(x))) x++;
+        if (x <= len && is_word_bound(line[x])) x++;
+        while (x < len && !is_word_bound(line[x])) x++;
         max_x = x;
 
-        io::print("\033[{}C", x - start_x);
+        for (uint32_t _ { 0 }; _ < (x - start_x); _++)
+            io::print("\033[C");
     } else if (x < utils::get_line(p_str, y).length()) {
         io::print("\033[C");
         x++;
@@ -133,7 +134,7 @@ CursorPosition::handle_right_arrow( const std::string &p_str,
 
     size_t line_amount { static_cast<size_t>(std::ranges::count(p_str, '\n')) };
     if (y < line_amount) {
-        io::print("\033[0G");
+        io::print("\033[G");
         io::print("\033[B");
 
         x = 0;
@@ -158,6 +159,19 @@ CursorPosition::handle_left_arrow( const std::string &p_str,
      *       else, move to the previous line, and put cursor at
      *       the last character of the line, or do nothing.
     */
+    if (p_ctrl) {
+        uint32_t start_x { x };
+        std::string line { utils::get_line(p_str, y) };
+        if (x > 0 && is_word_bound(line[x - 1])) x--;
+        while (x > 0 && !is_word_bound(line[x - 1])) x--;
+        max_x = x;
+
+        for (uint32_t _ { 0 }; _ < (start_x - x); _++)
+            io::print("\033[D");
+
+        return true;
+    }
+
     if (x > 0) {
         io::print("\033[D");
         x--;

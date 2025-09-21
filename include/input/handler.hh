@@ -1,10 +1,11 @@
 #pragma once
-#ifndef __BetterShell__input_input_hh
-#define __BetterShell__input_input_hh
+#ifndef __BetterShell__input_handler_hh
+#define __BetterShell__input_handler_hh
 #include <cstdint>
 #include <istream>
 #include <string>
 #include <termios.h>
+#include "parser/handler.hh"
 #include "input/terminal.hh"
 
 #define EOT 4
@@ -50,6 +51,7 @@ namespace input
         bool m_exit;
 
         term::Handler m_terminal_handler;
+        // parser::Handler m_parser;
 
 
         /**
@@ -59,4 +61,4 @@ namespace input
     };
 }
 
-#endif /* __BetterShell__input_input_hh */
+#endif /* __BetterShell__input_handler_hh */

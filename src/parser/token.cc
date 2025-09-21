@@ -1,6 +1,6 @@
 #include <glibmm.h>
 #include <giomm.h>
-#include "parser/parser.hh"
+#include "parser/token.hh"
 
 using namespace std::string_literals;
 using parser::Token;
