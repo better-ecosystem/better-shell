@@ -1,5 +1,5 @@
-#include <iostream>
 #include <csignal>
+#include <iostream>
 
 #include <unistd.h>
 
@@ -17,14 +17,16 @@ namespace
      */
     [[nodiscard]]
     auto
-    get_ansi_sequence( std::streambuf *p_sbuf ) -> std::optional<std::string>
+    get_ansi_sequence(std::streambuf *sbuf) -> std::optional<std::string>
     {
         std::array<char, 8> buff;
-        for (size_t i { 0 }; i < buff.size(); i++) {
-            if (p_sbuf->sgetc() == EOT) return std::nullopt;
+        for (size_t i { 0 }; i < buff.size(); i++)
+        {
+            if (sbuf->sgetc() == EOT) return std::nullopt;
 
-            buff[i] = static_cast<char>(p_sbuf->sbumpc());
-            if ((buff[i] >= 'A' && buff[i] <= 'Z') || buff[i] == '~') {
+            buff[i] = static_cast<char>(sbuf->sbumpc());
+            if ((buff[i] >= 'A' && buff[i] <= 'Z') || buff[i] == '~')
+            {
                 buff[++i] = '\0';
                 break;
             }
@@ -36,17 +38,16 @@ namespace
 
 
 Handler *Handler::m_handler_instance { nullptr };
-Handler::Handler( std::istream *p_stream ) :
-    m_stream(p_stream),
-    m_is_term(false)
+Handler::Handler(std::istream *stream) : m_stream(stream), m_is_term(false)
 {
-    if (p_stream->rdbuf() == std::cin.rdbuf() && isatty(STDIN_FILENO) != 0) {
+    if (stream->rdbuf() == std::cin.rdbuf() && isatty(STDIN_FILENO) != 0)
+    {
         tcgetattr(STDIN_FILENO, &m_old_term);
 
         termios newt { m_old_term };
 
-        newt.c_lflag &= ~(ICANON | ECHO);
-        newt.c_cc[VMIN] = 1;
+        newt.c_lflag    &= ~(ICANON | ECHO);
+        newt.c_cc[VMIN]  = 1;
         newt.c_cc[VTIME] = 0;
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
         m_is_term = true;
@@ -58,19 +59,23 @@ Handler::Handler( std::istream *p_stream ) :
 
 
 Handler::~Handler()
-{ if (m_is_term) tcsetattr(STDIN_FILENO, TCSANOW, &m_old_term); }
+{
+    if (m_is_term) tcsetattr(STDIN_FILENO, TCSANOW, &m_old_term);
+}
 
 
 auto
 Handler::is_active() const -> bool
-{ return m_is_term; }
+{
+    return m_is_term;
+}
 
 
 void
 Handler::reset()
 {
-    m_pos.x = 0;
-    m_pos.y = 0;
+    m_pos.x      = 0;
+    m_pos.y      = 0;
     m_pos.last_x = 0;
 }
 
@@ -83,43 +88,48 @@ Handler::show_prompt()
 
 
 auto
-Handler::handle( const char     &p_current,
-                 std::string    &p_str,
-                 std::streambuf *p_sbuf ) -> ReturnType
+Handler::handle(const char     &current,
+                std::string    &str,
+                std::streambuf *sbuf) -> ReturnType
 {
     if (!m_is_term) return RETURN_NONE;
 
-    if (p_current == '\\') {
+    if (current == '\\')
+    {
         m_escaped = true;
-        io::print("{}", p_current);
-        insert_char_to_cursor(p_str, p_current);
+        io::print("{}", current);
+        insert_char_to_cursor(str, current);
         return RETURN_CONTINUE;
     }
 
-    if (p_current == '\n') {
+    if (current == '\n')
+    {
         io::println("");
 
-        if (m_escaped) {
-            insert_char_to_cursor(p_str, p_current);
+        if (m_escaped)
+        {
+            insert_char_to_cursor(str, current);
             return RETURN_CONTINUE;
         }
         return RETURN_DONE;
     }
 
     /* ANSI escape code */
-    if (p_current == '\033') {
-        if (!handle_arrow(p_str, p_sbuf)) return RETURN_EXIT;
+    if (current == '\033')
+    {
+        if (!handle_arrow(str, sbuf)) return RETURN_EXIT;
         return RETURN_CONTINUE;
     }
 
     /* Backspace */
-    if (p_current == 0x7F || p_current == 0x08) {
-        handle_backspace(p_str, p_current == 0x08);
+    if (current == 0x7F || current == 0x08)
+    {
+        handle_backspace(str, current == 0x08);
         return RETURN_CONTINUE;
     }
 
-    io::print("\033[s{}{}\033[u\033[C", p_current, p_str.substr(m_pos.x));
-    insert_char_to_cursor(p_str, p_current);
+    io::print("\033[s{}{}\033[u\033[C", current, str.substr(m_pos.x));
+    insert_char_to_cursor(str, current);
 
     m_escaped = false;
 
@@ -128,65 +138,68 @@ Handler::handle( const char     &p_current,
 
 
 void
-Handler::insert_char_to_cursor( std::string &p_str, char p_c )
+Handler::insert_char_to_cursor(std::string &str, char c)
 {
-    size_t idx { m_pos.get_string_idx(p_str) };
-    p_str.insert(idx, 1, p_c);
+    size_t idx { m_pos.get_string_idx(str) };
+    str.insert(idx, 1, c);
 
-    if (p_c == '\n') {
+    if (c == '\n')
+    {
         m_pos.x = 0;
         m_pos.y++;
-    } else m_pos.x++;
+    }
+    else
+        m_pos.x++;
 }
 
 
 void
-Handler::handle_backspace( std::string &p_str, bool p_ctrl )
+Handler::handle_backspace(std::string &str, bool ctrl)
 {
     if (m_pos.is_zero()) return;
 
-    if (m_pos.x > 0) {
-        size_t idx { m_pos.get_string_idx(p_str) };
-        p_str.erase(idx - 1, 1);
+    if (m_pos.x > 0)
+    {
+        size_t idx { m_pos.get_string_idx(str) };
+        str.erase(idx - 1, 1);
         m_pos.x--;
 
         io::print("\033[D");
         io::print("\033[s");
-        io::print("{} ", p_str.substr(idx - 1));
+        io::print("{} ", str.substr(idx - 1));
         io::print("\033[u");
     }
 }
 
 
 auto
-Handler::handle_arrow( const std::string &p_str,
-                       std::streambuf    *p_sbuf ) -> bool
+Handler::handle_arrow(const std::string &str, std::streambuf *sbuf) -> bool
 {
-    auto seq_buff { get_ansi_sequence(p_sbuf) };
+    auto seq_buff { get_ansi_sequence(sbuf) };
     if (!seq_buff) return false;
 
     const std::string &seq { *seq_buff };
-    const bool ctrl { seq.starts_with("[1;5") };
-    const auto dir  { CursorPosition::Direction(seq.back()) };
+    const bool         ctrl { seq.starts_with("[1;5") };
+    const auto         dir { CursorPosition::Direction(seq.back()) };
 
     /* dir is either C/D */
-    if (dir >= 'C')
-        return m_pos.handle_arrows(dir, p_str, ctrl);
-    return m_pos.handle_arrows(dir, p_str, ctrl) || handle_history(p_str);
+    if (dir >= 'C') return m_pos.handle_arrows(dir, str, ctrl);
+    return m_pos.handle_arrows(dir, str, ctrl) || handle_history(str);
 }
 
 
 auto
-Handler::handle_history( const std::string &p_current ) -> bool
+Handler::handle_history(const std::string &current) -> bool
 {
     return true;
 }
 
 
 void
-Handler::sigint_handler( int p_sig )
+Handler::sigint_handler(int sig)
 {
-    if (p_sig == SIGINT && m_handler_instance != nullptr) {
+    if (sig == SIGINT && m_handler_instance != nullptr)
+    {
         if (!m_handler_instance->is_active()) return;
 
         io::println("^C");

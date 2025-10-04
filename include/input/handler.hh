@@ -24,19 +24,19 @@ namespace input
 
     public:
         /**
-         * @param p_stream The stream the handler will read into.
-         * @warning deleting @p p_stream while this class is still active
+         * @param stream The stream the handler will read into.
+         * @warning deleting @p stream while this class is still active
          *          is undefined behaviour.
          */
-        Handler( std::istream *p_stream );
+        Handler( std::istream *stream );
 
 
         /**
          * @brief Reads shell input from stream passed to the ctor.
          *
-         * @return The size of @p p_str
+         * @return The size of @p str
          */
-        auto read( std::string &p_str ) -> size_t;
+        auto read( std::string &str ) -> size_t;
 
 
         /**
@@ -57,7 +57,7 @@ namespace input
         /**
          * @brief Exits the shell.
          */
-        void exit( char p_code );
+        void exit( char code );
     };
 }
 

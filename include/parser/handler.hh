@@ -10,10 +10,10 @@ namespace parser
     class Handler
     {
     public:
-        Handler( bool p_syntax_highlighting );
+        Handler( bool syntax_highlighting );
 
 
-        void parse_token( const std::string &p_str );
+        void parse_token( const std::string &str );
 
 
         [[nodiscard]]

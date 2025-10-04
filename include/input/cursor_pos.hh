@@ -36,13 +36,13 @@ namespace input::term
          *         or false if nothing has changed.
          */
         [[nodiscard]]
-        auto handle_arrows( Direction          p_dir,
-                            const std::string &p_str,
-                            bool               p_ctrl ) -> bool;
+        auto handle_arrows( Direction          dir,
+                            const std::string &str,
+                            bool               ctrl ) -> bool;
 
 
         /**
-         * @brief Gets the absolute index of @p p_str
+         * @brief Gets the absolute index of @p str
          *        from the x, and y position.
          *
          * @throw The function might throw an `std::out_of_range`
@@ -50,7 +50,7 @@ namespace input::term
          *        going out of range from the string's length.
          */
         [[nodiscard]]
-        auto get_string_idx( const std::string &p_str ) const -> size_t;
+        auto get_string_idx( const std::string &str ) const -> size_t;
 
     private:
         [[nodiscard]]
@@ -58,17 +58,17 @@ namespace input::term
 
 
         [[nodiscard]]
-        auto handle_down_arrow( const std::string &p_str ) -> bool;
+        auto handle_down_arrow( const std::string &str ) -> bool;
 
 
         [[nodiscard]]
-        auto handle_right_arrow( const std::string &p_str,
-                                 bool               p_ctrl ) -> bool;
+        auto handle_right_arrow( const std::string &str,
+                                 bool               ctrl ) -> bool;
 
 
         [[nodiscard]]
-        auto handle_left_arrow( const std::string &p_str,
-                                bool               p_ctrl ) -> bool;
+        auto handle_left_arrow( const std::string &str,
+                                bool               ctrl ) -> bool;
     };
 }
 

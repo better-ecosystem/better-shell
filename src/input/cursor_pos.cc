@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <ranges>
+
 #include "input/cursor_pos.hh"
 #include "print.hh"
 #include "utils.hh"
@@ -10,51 +12,55 @@ namespace
 {
     [[nodiscard]]
     auto
-    is_word_bound( char p_c ) -> bool
-    { return ((std::isspace(p_c) != 0) || (std::ispunct(p_c) != 0)); }
-}
-
-
-auto
-CursorPosition::is_zero() const noexcept -> bool
-{ return x == 0 && y == 0; }
-
-
-auto
-CursorPosition::handle_arrows( Direction          p_dir,
-                               const std::string &p_str,
-                               bool               p_ctrl ) -> bool
-{
-    switch (p_dir) {
-    case DIR_UP:    return handle_up_arrow();
-    case DIR_DOWN:  return handle_down_arrow (p_str);
-    case DIR_RIGHT: return handle_right_arrow(p_str, p_ctrl);
-    case DIR_LEFT:  return handle_left_arrow (p_str, p_ctrl);
+    is_word_bound(char c) -> bool
+    {
+        return ((std::isspace(c) != 0) || (std::ispunct(c) != 0));
     }
 }
 
 
 auto
-CursorPosition::get_string_idx( const std::string &p_str ) const -> size_t
+CursorPosition::is_zero() const noexcept -> bool
 {
-    size_t line   { 0 };
+    return x == 0 && y == 0;
+}
+
+
+auto
+CursorPosition::handle_arrows(Direction          dir,
+                              const std::string &str,
+                              bool               ctrl) -> bool
+{
+    switch (dir)
+    {
+    case DIR_UP:    return handle_up_arrow();
+    case DIR_DOWN:  return handle_down_arrow(str);
+    case DIR_RIGHT: return handle_right_arrow(str, ctrl);
+    case DIR_LEFT:  return handle_left_arrow(str, ctrl);
+    }
+}
+
+
+auto
+CursorPosition::get_string_idx(const std::string &str) const -> size_t
+{
+    size_t line { 0 };
     size_t char_x { 0 };
 
-    for (size_t i = 0; i < p_str.size();) {
+    for (size_t i = 0; i < str.size();)
+    {
         if (line == y && char_x == x) return i;
 
-        unsigned char c { static_cast<unsigned char>(p_str[i]) };
+        unsigned char c { static_cast<unsigned char>(str[i]) };
 
-        size_t advance =
-            (c < 0x80) ? 1 :
-            (c < 0xE0) ? 2 :
-            (c < 0xF0) ? 3 : 4;
+        size_t advance = (c < 0x80) ? 1 : (c < 0xE0) ? 2 : (c < 0xF0) ? 3 : 4;
 
-        if (c == '\n') {
+        if (c == '\n')
+        {
             if (line == y && x == 0) return i;
             line++;
             char_x = 0;
-            i += 1;
+            i     += 1;
             continue;
         }
 
@@ -63,7 +69,7 @@ CursorPosition::get_string_idx( const std::string &p_str ) const -> size_t
         i += advance;
     }
 
-    if (line == y && char_x == x) return p_str.size();
+    if (line == y && char_x == x) return str.size();
 
     throw std::out_of_range("Coordinates out of range");
 }
@@ -85,13 +91,14 @@ CursorPosition::handle_up_arrow() -> bool
 
 
 auto
-CursorPosition::handle_down_arrow( const std::string &p_str ) -> bool
+CursorPosition::handle_down_arrow(const std::string &str) -> bool
 {
     /*
      * DOWN: If not on the last line, cursor should move down 1 line,
      *       else, move to the next ran command, or do nothing.
     */
-    if (y <= std::ranges::count(p_str, '\n')) {
+    if (y <= std::ranges::count(str, '\n'))
+    {
         io::print("\033[B");
         y++;
         return true;
@@ -102,8 +109,8 @@ CursorPosition::handle_down_arrow( const std::string &p_str ) -> bool
 
 
 auto
-CursorPosition::handle_right_arrow( const std::string &p_str,
-                                    bool               p_ctrl ) -> bool
+CursorPosition::handle_right_arrow(const std::string &str, bool ctrl)
+    -> bool
 {
     /*
      * CTRL + RIGHT: If not on the last character of the line,
@@ -115,25 +122,28 @@ CursorPosition::handle_right_arrow( const std::string &p_str,
      *        else, move to the next line, and put cursor at
      *        the start of the line, or do nothing.
     */
-    if (p_ctrl) {
-        uint32_t start_x { x };
-        std::string line { utils::get_line(p_str, y) };
+    if (ctrl)
+    {
+        uint32_t     start_x { x };
+        std::string  line { utils::get_line(str, y) };
         const size_t len { line.length() };
 
         if (x <= len && is_word_bound(line[x])) x++;
         while (x < len && !is_word_bound(line[x])) x++;
         max_x = x;
 
-        for (uint32_t _ { 0 }; _ < (x - start_x); _++)
-            io::print("\033[C");
-    } else if (x < utils::get_line(p_str, y).length()) {
+        for (uint32_t _ { 0 }; _ < (x - start_x); _++) io::print("\033[C");
+    }
+    else if (x < utils::get_line(str, y).length())
+    {
         io::print("\033[C");
         x++;
         return true;
     }
 
-    size_t line_amount { static_cast<size_t>(std::ranges::count(p_str, '\n')) };
-    if (y < line_amount) {
+    size_t line_amount { static_cast<size_t>(std::ranges::count(str, '\n')) };
+    if (y < line_amount)
+    {
         io::print("\033[G");
         io::print("\033[B");
 
@@ -146,8 +156,7 @@ CursorPosition::handle_right_arrow( const std::string &p_str,
 
 
 auto
-CursorPosition::handle_left_arrow( const std::string &p_str,
-                                   bool               p_ctrl ) -> bool
+CursorPosition::handle_left_arrow(const std::string &str, bool ctrl) -> bool
 {
     /*
      * CTRL + LEFT: If not on the first character of the line,
@@ -159,31 +168,33 @@ CursorPosition::handle_left_arrow( const std::string &p_str,
      *       else, move to the previous line, and put cursor at
      *       the last character of the line, or do nothing.
     */
-    if (p_ctrl) {
-        uint32_t start_x { x };
-        std::string line { utils::get_line(p_str, y) };
+    if (ctrl)
+    {
+        uint32_t    start_x { x };
+        std::string line { utils::get_line(str, y) };
         if (x > 0 && is_word_bound(line[x - 1])) x--;
         while (x > 0 && !is_word_bound(line[x - 1])) x--;
         max_x = x;
 
-        for (uint32_t _ { 0 }; _ < (start_x - x); _++)
-            io::print("\033[D");
+        for (auto _ : utils::range(0U, start_x - x)) io::print("\033[D");
 
         return true;
     }
 
-    if (x > 0) {
+    if (x > 0)
+    {
         io::print("\033[D");
         x--;
 
         return true;
     }
 
-    if (y > 0) {
+    if (y > 0)
+    {
         io::print("\033[A");
         y--;
 
-        x = utils::get_line(p_str, y).length() - 1;
+        x = utils::get_line(str, y).length() - 1;
         io::print("\033[{}G", x + 1);
     }
 
