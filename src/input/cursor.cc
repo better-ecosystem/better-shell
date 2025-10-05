@@ -30,10 +30,9 @@ Cursor::handle_arrows(Direction dir, const std::string &str, bool ctrl) -> bool
 {
     switch (dir)
     {
-    case DIR_UP:    return handle_up_arrow();
-    case DIR_DOWN:  return handle_down_arrow(str);
     case DIR_RIGHT: return handle_right_arrow(str, ctrl);
     case DIR_LEFT:  return handle_left_arrow(str, ctrl);
+    default:        return true;
     }
 }
 
@@ -70,39 +69,6 @@ Cursor::get_string_idx(const std::string &str) const -> size_t
 
     throw std::out_of_range(
         std::format("Coordinates out of range (x: {} y: {})", x, y));
-}
-
-
-auto
-Cursor::handle_up_arrow() -> bool
-{
-    /*
-     * UP: If not on the first line, cursor should move up 1 line,
-     *     else, move to the previously ran command.
-    */
-    if (y == 0) return false;
-
-    io::print("\033[A");
-    y--;
-    return true;
-}
-
-
-auto
-Cursor::handle_down_arrow(const std::string &str) -> bool
-{
-    /*
-     * DOWN: If not on the last line, cursor should move down 1 line,
-     *       else, move to the next ran command, or do nothing.
-    */
-    if (y <= std::ranges::count(str, '\n'))
-    {
-        io::print("\033[B");
-        y++;
-        return true;
-    }
-
-    return false;
 }
 
 

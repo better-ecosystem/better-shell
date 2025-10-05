@@ -5,15 +5,10 @@ project('Better Shell', 'cpp',
         license: 'GPL-3.0-or-later',
         license_files: [ 'COPYING' ])
 
-utf8cpp = declare_dependency(
-    include_directories: include_directories('/usr/include/utf8cpp')
-)
-
 add_project_dependencies([
     dependency('jsoncpp'),
     dependency('giomm-2.68'),
     dependency('glibmm-2.68'),
-    utf8cpp
 ], language: 'cpp')
 
 add_project_arguments([
@@ -31,5 +26,7 @@ files = files(
 ) + input_files + parser_files
 
 executable('better-shell', files,
-           include_directories: include_directories('include'),
+           include_directories: include_directories('include',
+                                                    'extern/utf8cpp',
+                                                    'extern/utf8cpp/utf8'),
            install: true)
