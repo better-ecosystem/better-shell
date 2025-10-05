@@ -44,7 +44,10 @@ Handler::read(std::string &str) -> size_t
         default:                    break;
         }
 
-        if (!m_terminal_handler.is_active()) str += c;
+        if (!m_terminal_handler.is_active())
+        {
+            str += c;
+        }
 
         if (c == '\n') break;
     }

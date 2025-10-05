@@ -22,6 +22,22 @@ namespace utils
     auto contains_unicode(std::string_view str) -> bool;
 
 
+    [[nodiscard]]
+    auto is_leading_byte(const unsigned char &byte) -> bool;
+
+
+    [[nodiscard]]
+    auto is_continuation_byte(const unsigned char &byte) -> bool;
+
+
+    [[nodiscard]]
+    auto is_ascii_byte(const unsigned char &byte) -> bool;
+
+
+    [[nodiscard]]
+    auto utf8_get_expected_length(const unsigned char &leading) -> size_t;
+
+
     /**
      * @brief Wrapper for `std::getenv`
      */

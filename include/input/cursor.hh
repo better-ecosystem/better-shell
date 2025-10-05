@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
-
-#include <glibmm/ustring.h>
+#include <string>
 
 
 namespace input::term
@@ -35,7 +34,7 @@ namespace input::term
          *         or false if nothing has changed.
          */
         [[nodiscard]]
-        auto handle_arrows(Direction dir, const Glib::ustring &str, bool ctrl)
+        auto handle_arrows(Direction dir, const std::string &str, bool ctrl)
             -> bool;
 
 
@@ -48,7 +47,7 @@ namespace input::term
          *        going out of range from the string's length.
          */
         [[nodiscard]]
-        auto get_string_idx(const Glib::ustring &str) const -> size_t;
+        auto get_string_idx(const std::string &str) const -> size_t;
 
     private:
         [[nodiscard]]
@@ -56,14 +55,14 @@ namespace input::term
 
 
         [[nodiscard]]
-        auto handle_down_arrow(const Glib::ustring &str) -> bool;
+        auto handle_down_arrow(const std::string &str) -> bool;
 
 
         [[nodiscard]]
-        auto handle_right_arrow(const Glib::ustring &str, bool ctrl) -> bool;
+        auto handle_right_arrow(const std::string &str, bool ctrl) -> bool;
 
 
         [[nodiscard]]
-        auto handle_left_arrow(const Glib::ustring &str, bool ctrl) -> bool;
+        auto handle_left_arrow(const std::string &str, bool ctrl) -> bool;
     };
 }

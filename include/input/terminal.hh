@@ -27,8 +27,9 @@ namespace input::term
         ~Handler();
 
 
-        auto handle(const char &current, std::string &str, std::streambuf *sbuf)
-            -> ReturnType;
+        auto handle(const unsigned char &current,
+                    std::string         &str,
+                    std::streambuf      *sbuf) -> ReturnType;
 
 
         /**
@@ -45,6 +46,8 @@ namespace input::term
 
     private:
         std::istream *m_stream;
+        std::string   m_u8_buffer;
+        size_t        m_u8_expected_len;
 
         Cursor m_pos;
         bool   m_escaped;
@@ -53,7 +56,8 @@ namespace input::term
         bool    m_is_term;
 
 
-        void insert_char_to_cursor(std::string &str, char c);
+        void insert_char_to_cursor(std::string &str, unsigned char c);
+        void insert_u8_to_cursor(std::string &str);
 
 
         void handle_backspace(std::string &str, bool ctrl);

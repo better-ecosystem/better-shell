@@ -1,10 +1,13 @@
 #include <csignal>
+#include <cwchar>
 #include <iostream>
 
 #include <unistd.h>
+#include <utf8.h>
 
 #include "input/terminal.hh"
 #include "print.hh"
+#include "utils.hh"
 
 using input::term::Handler;
 
@@ -88,9 +91,9 @@ Handler::show_prompt()
 
 
 auto
-Handler::handle(const char     &current,
-                std::string    &str,
-                std::streambuf *sbuf) -> ReturnType
+Handler::handle(const unsigned char &current,
+                std::string         &str,
+                std::streambuf      *sbuf) -> ReturnType
 {
     if (!m_is_term) return RETURN_NONE;
 
@@ -128,8 +131,37 @@ Handler::handle(const char     &current,
         return RETURN_CONTINUE;
     }
 
-    io::print("\033[s{}{}\033[u\033[C", current, str.substr(m_pos.x));
-    insert_char_to_cursor(str, current);
+    if (utils::is_leading_byte(current))
+    {
+        m_u8_buffer      += current;
+        m_u8_expected_len = utils::utf8_get_expected_length(current);
+
+        return RETURN_CONTINUE;
+    }
+
+    if (utils::is_continuation_byte(current))
+    {
+        m_u8_buffer += current;
+
+        if (m_u8_buffer.size() == m_u8_expected_len)
+        {
+            io::print("\033[s{}{}\033[u\033[C", m_u8_buffer,
+                      str.substr(m_pos.x));
+            insert_u8_to_cursor(str);
+            m_u8_buffer.clear();
+            m_u8_expected_len = 0;
+        }
+
+        return RETURN_CONTINUE;
+    }
+
+    if (utils::is_ascii_byte(current))
+    {
+        io::print("\033[s{}{}\033[u\033[C", static_cast<char>(current),
+                  str.substr(m_pos.x));
+        insert_char_to_cursor(str, current);
+    }
+
 
     m_escaped = false;
 
@@ -138,7 +170,7 @@ Handler::handle(const char     &current,
 
 
 void
-Handler::insert_char_to_cursor(std::string &str, char c)
+Handler::insert_char_to_cursor(std::string &str, unsigned char c)
 {
     size_t idx { m_pos.get_string_idx(str) };
     str.insert(idx, 1, c);
@@ -150,6 +182,35 @@ Handler::insert_char_to_cursor(std::string &str, char c)
     }
     else
         m_pos.x++;
+}
+
+
+void
+Handler::insert_u8_to_cursor(std::string &str)
+{
+    size_t idx { m_pos.get_string_idx(str) };
+    str.insert(idx, m_u8_buffer);
+
+    try
+    {
+        auto       it { m_u8_buffer.begin() };
+        const auto end { m_u8_buffer.end() };
+
+        char32_t codepoint = utf8::next(it, end);
+
+        int width { wcwidth(static_cast<wchar_t>(codepoint)) };
+        if (width < 0) width = 1;
+
+        m_pos.x += width;
+    }
+    catch (const utf8::invalid_utf8 &e)
+    {
+        m_pos.x += 1;
+    }
+    catch (...)
+    {
+        m_pos.x += 1;
+    }
 }
 
 

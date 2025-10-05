@@ -68,6 +68,39 @@ namespace utils
 
 
     auto
+    is_leading_byte(const unsigned char &byte) -> bool
+    {
+        return (byte & 0b11000000) == 0b11000000
+            && (byte & 0b11111000) != 0b11111000;
+    }
+
+
+    auto
+    is_continuation_byte(const unsigned char &byte) -> bool
+    {
+        return (byte & 0b11000000) == 0b10000000;
+    }
+
+
+    auto
+    is_ascii_byte(const unsigned char &byte) -> bool
+    {
+        return (byte & 0b10000000) == 0;
+    }
+
+
+    auto
+    utf8_get_expected_length(const unsigned char &leading) -> size_t
+    {
+        if ((leading & 0b10000000) == 0) return 1;
+        if ((leading & 0b11100000) == 0b11000000) return 2;
+        if ((leading & 0b11110000) == 0b11100000) return 3;
+        if ((leading & 0b11111000) == 0b11110000) return 4;
+        return 1;
+    }
+
+
+    auto
     getenv(const std::string &env) -> std::string
     {
         const auto *VALUE { std::getenv(env.c_str()) };

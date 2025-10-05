@@ -11,6 +11,7 @@
 auto
 main(int /* argc */, char ** /* argv */) -> int
 {
+    std::setlocale(LC_CTYPE, "");
     Gio::init();
 
     input::Handler handler { &std::cin };

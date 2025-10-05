@@ -20,6 +20,7 @@ Diagnostics:
         - readability-magic-numbers
         - bugprone-easily-swappable-parameters
         - readability-avoid-nested-conditional-operator
+        - bugprone-narrowing-conversions
 
 Index:
   Background: Build
