@@ -2,40 +2,49 @@
 #include <ranges>
 #include <string>
 
+#include <json/value.h>
+
 
 namespace utils
 {
-    /**
-     * @brief Gets the @p idx 's line from @p str .
-     *
-     * @throw This function might throw `std::out_of_range` if @p idx
-     *        is bigger than the amount of lines in @p str .
-     */
-    [[nodiscard]]
-    auto get_line(const std::string &str, size_t idx) -> std::string;
+    namespace utf8
+    {
+        [[nodiscard]]
+        auto contains_unicode(std::string_view str) -> bool;
 
 
-    /**
-     * @brief Checks whether @p str contains a unicode utf8 value.
-     */
-    [[nodiscard]]
-    auto contains_unicode(std::string_view str) -> bool;
+        [[nodiscard]]
+        auto is_leading_byte(const unsigned char &byte) -> bool;
 
 
-    [[nodiscard]]
-    auto is_leading_byte(const unsigned char &byte) -> bool;
+        [[nodiscard]]
+        auto is_continuation_byte(const unsigned char &byte) -> bool;
 
 
-    [[nodiscard]]
-    auto is_continuation_byte(const unsigned char &byte) -> bool;
+        [[nodiscard]]
+        auto is_ascii_byte(const unsigned char &byte) -> bool;
 
 
-    [[nodiscard]]
-    auto is_ascii_byte(const unsigned char &byte) -> bool;
+        [[nodiscard]]
+        auto get_expected_length(const unsigned char &leading) -> size_t;
+    }
 
 
-    [[nodiscard]]
-    auto utf8_get_expected_length(const unsigned char &leading) -> size_t;
+    namespace str
+    {
+        /**
+         * @brief Gets the @p idx 's line from @p str .
+         *
+         * @throw This function might throw `std::out_of_range` if @p idx
+         *        is bigger than the amount of lines in @p str .
+         */
+        [[nodiscard]]
+        auto get_line(const std::string &str, size_t idx) -> std::string;
+
+
+        [[nodiscard]]
+        auto is_word_bound(const unsigned char &ch) -> bool;
+    }
 
 
     /**
@@ -60,9 +69,24 @@ namespace utils
      */
     template <typename Tp>
     [[nodiscard]]
-    auto
+    constexpr auto
     range(Tp start, Tp end)
     {
         return std::views::iota(start) | std::views::take(end);
     }
+
+
+#define RUN_FUNC_N(n) \
+    for (auto _ : utils::range(static_cast<decltype(n)>(0), n))
+}
+
+
+namespace Json
+{
+    [[nodiscard]]
+    auto to_string(const Json::Value &val) -> std::string;
+
+
+    [[nodiscard]]
+    auto from_string(const std::string &val) -> Json::Value;
 }

@@ -37,14 +37,6 @@ namespace
 
         return buff.data();
     }
-
-
-    [[nodiscard]]
-    auto
-    is_word_boundary(unsigned char c) -> bool
-    {
-        return std::ispunct(c) != 0 || std::isspace(c) != 0;
-    }
 }
 
 
@@ -65,6 +57,8 @@ Handler::Handler(std::istream *stream) : m_stream(stream), m_is_term(false)
 
         m_handler_instance = this;
         std::signal(SIGINT, Handler::sigint_handler);
+
+        m_history = std::make_unique<history::Handler>("");
     }
 }
 
@@ -94,7 +88,13 @@ Handler::reset()
 void
 Handler::show_prompt()
 {
-    io::print("$ ");
+    std::string HOME { utils::getenv("HOME") };
+    std::string path { std::filesystem::current_path().string() };
+
+    size_t pos { path.find(HOME) };
+    path.replace(pos, HOME.length(), "~");
+
+    io::print("[{}]$ ", path);
 }
 
 
@@ -122,6 +122,9 @@ Handler::handle(const unsigned char &current,
             insert_char_to_cursor(str, current);
             return RETURN_CONTINUE;
         }
+
+        m_history->push_back(str);
+        m_history->reset();
         return RETURN_DONE;
     }
 
@@ -139,15 +142,15 @@ Handler::handle(const unsigned char &current,
         return RETURN_CONTINUE;
     }
 
-    if (utils::is_leading_byte(current))
+    if (utils::utf8::is_leading_byte(current))
     {
         m_u8_buffer      += current;
-        m_u8_expected_len = utils::utf8_get_expected_length(current);
+        m_u8_expected_len = utils::utf8::get_expected_length(current);
 
         return RETURN_CONTINUE;
     }
 
-    if (utils::is_continuation_byte(current))
+    if (utils::utf8::is_continuation_byte(current))
     {
         m_u8_buffer += current;
 
@@ -163,7 +166,7 @@ Handler::handle(const unsigned char &current,
         return RETURN_CONTINUE;
     }
 
-    if (utils::is_ascii_byte(current))
+    if (utils::utf8::is_ascii_byte(current))
     {
         io::print("\033[s{}{}\033[u\033[C", static_cast<char>(current),
                   str.substr(m_pos.x));
@@ -244,27 +247,23 @@ Handler::handle_backspace(std::string &str, bool ctrl)
 
         size_t first { idx };
 
-        if (is_word_boundary(str[first - 1])) first--;
-        if (is_word_boundary(str[first - 1]))
+        /* this whole mess makes it work like how _vscode_ handles it */
+        if (utils::str::is_word_bound(str[first - 1]))
         {
-            while (first > 0 && is_word_boundary(str[first - 1]))
-            {
+            first--;
+            while (first > 0 && utils::str::is_word_bound(str[first - 1]))
                 first--;
-            }
         }
         else
         {
-            while (first > 0 && !is_word_boundary(str[first - 1]))
-            {
+            while (first > 0 && !utils::str::is_word_bound(str[first - 1]))
                 first--;
-            }
         }
-
 
         str.erase(first, idx - first);
         m_pos.x -= (idx - first);
 
-        for (auto _ : utils::range<size_t>(0, idx - first)) io::print("\033[D");
+        RUN_FUNC_N(idx - first) io::print("\033[D");
         io::print("\033[s");
         io::print("{}{}", str.substr(first), std::string(idx - first, ' '));
         io::print("\033[u");
@@ -273,7 +272,7 @@ Handler::handle_backspace(std::string &str, bool ctrl)
 
 
 auto
-Handler::handle_arrow(const std::string &str, std::streambuf *sbuf) -> bool
+Handler::handle_arrow(std::string &str, std::streambuf *sbuf) -> bool
 {
     auto seq_buff { get_ansi_sequence(sbuf) };
     if (!seq_buff) return false;
@@ -282,15 +281,49 @@ Handler::handle_arrow(const std::string &str, std::streambuf *sbuf) -> bool
     const bool         ctrl { seq.starts_with("[1;5") };
     const auto         dir { Cursor::Direction(seq.back()) };
 
-    /* dir is either C/D */
-    if (dir >= 'C') return m_pos.handle_arrows(dir, str, ctrl);
-    return m_pos.handle_arrows(dir, str, ctrl) || handle_history(str);
+    return m_pos.handle_arrows(dir, str, ctrl) || handle_history(dir, str);
 }
 
 
 auto
-Handler::handle_history(const std::string &current) -> bool
+Handler::handle_history(Cursor::Direction dir, std::string &current) -> bool
 {
+    if (m_current_text.empty()) m_current_text = current;
+
+    std::string before { current };
+    if (dir == Cursor::DIR_DOWN)
+    {
+        auto text { m_history->get_next() };
+        if (!text)
+        {
+            current = m_current_text;
+            m_current_text.clear();
+            return true;
+        }
+        current = *text;
+    }
+    if (dir == Cursor::DIR_UP)
+    {
+        auto text { m_history->get_prev() };
+        if (!text) return true;
+        current = *text;
+    }
+
+    if (dir == Cursor::DIR_DOWN || dir == Cursor::DIR_UP)
+    {
+        io::print("\r\033[K");
+
+        show_prompt();
+        io::print("{}", current);
+
+        int64_t len { static_cast<int64_t>(before.length())
+                      - static_cast<int64_t>(current.length()) };
+        if (len > 0) io::print("{}", std::string(len, ' '));
+
+        m_pos.x = utf8::distance(current.begin(), current.end());
+        m_pos.y = 0;
+    }
+
     return true;
 }
 

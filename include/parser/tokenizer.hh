@@ -6,19 +6,22 @@
 #include <variant>
 #include <vector>
 
+#include <json/value.h>
+
 
 namespace parser
 {
     enum class TokenType : uint8_t
     {
-        COMMAND,  /* < Command to run */
-        ARGUMENT, /* < Command argument (cmd arg --flag) */
-        FLAG,
+        COMMAND,    /* < Command to run */
+        ARGUMENT,   /* < Command argument (cmd arg) */
+        FLAG,       /* < Command flag (cmd --flag) */
         SUBSTITUTE, /* < ${cmd, ...} */
         OPERATOR,   /* < +, -, ||, ... */
         STRING,     /* < Pure string */
         FAIL,       /* < Bad strings / can't decide */
         END,        /* < EOF */
+        UNKNOWN,
     };
 
 
@@ -41,13 +44,50 @@ namespace parser
     }
 
 
-    struct Token
+    [[nodiscard]]
+    constexpr auto
+    token_type_from_string(std::string_view str) noexcept -> TokenType
     {
-        TokenType                                     type;
-        std::variant<std::string, std::vector<Token>> data;
+        if (str == "COMMAND") return parser::TokenType::COMMAND;
+        if (str == "ARGUMENT") return parser::TokenType::ARGUMENT;
+        if (str == "FLAG") return parser::TokenType::FLAG;
+        if (str == "SUBSTITUTE") return parser::TokenType::SUBSTITUTE;
+        if (str == "OPERATOR") return parser::TokenType::OPERATOR;
+        if (str == "STRING") return parser::TokenType::STRING;
+        if (str == "FAIL") return parser::TokenType::FAIL;
+        if (str == "END") return parser::TokenType::END;
+
+        return parser::TokenType::UNKNOWN;
+    }
+
+
+    struct Token;
+    struct Tokens
+    {
+        std::vector<Token> tokens;
+        std::string        raw;
 
         [[nodiscard]]
-        static auto tokenize(std::string &str) -> std::vector<Token>;
+        static auto tokenize(std::string &str) -> Tokens;
+
+
+        [[nodiscard]]
+        static auto from_json(const Json::Value &json) -> Tokens;
+
+
+        [[nodiscard]]
+        static auto to_json(const Tokens &tokens) -> Json::Value;
+
+
+        [[nodiscard]]
+        auto operator->() -> std::vector<Token> *;
+    };
+
+
+    struct Token
+    {
+        TokenType                         type;
+        std::variant<std::string, Tokens> data;
     };
 
 

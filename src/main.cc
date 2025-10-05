@@ -6,6 +6,7 @@
 #include "input/handler.hh"
 #include "parser/tokenizer.hh"
 #include "print.hh"
+#include "utils.hh"
 
 
 auto
@@ -25,12 +26,12 @@ main(int /* argc */, char ** /* argv */) -> int
         if (len == 0) continue;
 
 
-        std::vector<parser::Token> tokens;
+        parser::Tokens tokens;
 
         try
         {
-            tokens = parser::Token::tokenize(str);
-            io::println("{}", tokens);
+            tokens = parser::Tokens::tokenize(str);
+            io::println("{}", Json::to_string(parser::Tokens::to_json(tokens)));
         }
         catch (const std::exception &e)
         {

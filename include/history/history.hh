@@ -19,20 +19,20 @@ namespace history
         Handler(const std::filesystem::path &history_file);
 
 
-        void push_back(const parser::Token &token);
+        void push_back(const std::string &text);
 
 
         /**
-         * @brief Get the next token in the history list.
+         * @brief Get the next text in the history list.
          *
-         * Will increment the internal "current-token" index, which
+         * Will increment the internal "current-text" index, which
          * starts at the amount of lines in the history file,
-         * which means it will point to the last inserted token.
+         * which means it will point to the last inserted text.
          * When the index reaches the maximum size, and _get_next_ is called
          * again, _get_next_ will return an std::nullopt.
          */
         [[nodiscard]]
-        auto get_next() -> std::optional<parser::Token>;
+        auto get_next() -> std::optional<std::string>;
 
 
         /**
@@ -45,14 +45,16 @@ namespace history
          * _get_prev_ will return an std::nullopt.
          */
         [[nodiscard]]
-        auto get_prev() -> std::optional<parser::Token>;
+        auto get_prev() -> std::optional<std::string>;
+
+
+        void reset();
 
     private:
         std::filesystem::path m_history_file;
-        std::fstream          m_file;
 
-        size_t m_max_idx;
-        size_t m_current_token;
+        std::vector<std::string> m_lines;
+        size_t                   m_idx;
 
 
         [[nodiscard]]

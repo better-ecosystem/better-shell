@@ -8,7 +8,7 @@ namespace std { extern ostream cout; }
 namespace io
 {
     template <typename... T_Args>
-    inline void
+    void
     print(std::ostream                 &stream,
           std::format_string<T_Args...> fmt,
           T_Args &&...args)
@@ -25,7 +25,7 @@ namespace io
 
 
     template <typename... T_Args>
-    inline void
+    void
     print(std::format_string<T_Args...> fmt, T_Args &&...args)
     {
         print(std::cout, fmt, std::forward<T_Args>(args)...);
@@ -33,7 +33,7 @@ namespace io
 
 
     template <typename... T_Args>
-    inline void
+    void
     println(std::ostream                 &stream,
             std::format_string<T_Args...> fmt,
             T_Args &&...args)
@@ -44,7 +44,7 @@ namespace io
 
 
     template <typename... T_Args>
-    inline void
+    void
     println(std::format_string<T_Args...> fmt, T_Args &&...args)
     {
         println(std::cout, fmt, std::forward<T_Args>(args)...);

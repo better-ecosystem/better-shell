@@ -17,13 +17,14 @@ add_project_arguments([
     '-DAPP_ID="org.BetterDE.Better-Shell"',
 ], language: 'cpp')
 
+subdir('src/history')
 subdir('src/input')
 subdir('src/parser')
 
 files = files(
     'src/main.cc',
     'src/utils.cc',
-) + input_files + parser_files
+) + input_files + parser_files + history_files
 
 executable('better-shell', files,
            include_directories: include_directories('include',

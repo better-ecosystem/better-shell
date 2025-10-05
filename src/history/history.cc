@@ -18,7 +18,10 @@ Handler::Handler(const std::filesystem::path &history_file)
         m_history_file = history_file;
     }
 
-    m_file = std::fstream { m_history_file };
+    std::ifstream file { m_history_file };
+
+    for (std::string line; std::getline(file, line);)
+        m_lines.emplace_back(line);
 }
 
 
@@ -29,5 +32,54 @@ Handler::get_default_history_path() -> std::filesystem::path
                                            utils::getenv("HOME") + "/.cache") };
 
     if (cache_path.empty()) throw std::runtime_error("$HOME is not set");
-    return std::format("{}/better/better-shell/history.json", cache_path);
+
+    std::filesystem::path dir { std::format("{}/better/better-shell",
+                                            cache_path) };
+    std::filesystem::create_directories(dir);
+
+    return (dir / "history");
+}
+
+
+void
+Handler::push_back(const std::string &text)
+{
+    if (text.empty() || text[0] == '\n') return;
+    if (m_lines.back() == text) return;
+
+    m_lines.emplace_back(text);
+
+    std::ofstream file { m_history_file, std::ios_base::app };
+    if (file.is_open())
+    {
+        file << text << std::endl; //NOLINT
+    }
+    file.close();
+}
+
+
+auto
+Handler::get_next() -> std::optional<std::string>
+{
+    if (m_idx >= m_lines.size() - 1) return std::nullopt;
+
+    m_idx++;
+    return m_lines[m_idx];
+}
+
+
+auto
+Handler::get_prev() -> std::optional<std::string>
+{
+    if (m_idx == 0) return m_lines[m_idx];
+
+    m_idx--;
+    return m_lines[m_idx];
+}
+
+
+void
+Handler::reset()
+{
+    m_idx = m_lines.size() - 1;
 }

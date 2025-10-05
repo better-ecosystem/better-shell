@@ -9,11 +9,11 @@ using input::term::Cursor;
 
 namespace
 {
-    [[nodiscard]]
-    auto
-    is_word_bound(char c) -> bool
+    template <typename... T_Args>
+    void
+    print(std::format_string<T_Args...> fmt, T_Args &&...args)
     {
-        return ((std::isspace(c) != 0) || (std::ispunct(c) != 0));
+        io::print(fmt, std::forward<T_Args>(args)...);
     }
 }
 
@@ -32,7 +32,7 @@ Cursor::handle_arrows(Direction dir, const std::string &str, bool ctrl) -> bool
     {
     case DIR_RIGHT: return handle_right_arrow(str, ctrl);
     case DIR_LEFT:  return handle_left_arrow(str, ctrl);
-    default:        return true;
+    default:        return false;
     }
 }
 
@@ -75,43 +75,41 @@ Cursor::get_string_idx(const std::string &str) const -> size_t
 auto
 Cursor::handle_right_arrow(const std::string &str, bool ctrl) -> bool
 {
-    /*
-     * CTRL + RIGHT: If not on the last character of the line,
-     *               move cursor right until punctuation/space.
-     *               Else, move to the next line, and put the
-     *               cursor at the start of the line, or do nothing.
-     *
-     * RIGHT: If not on the last character of the line, move cursor right once,
-     *        else, move to the next line, and put cursor at
-     *        the start of the line, or do nothing.
-    */
+    std::string  line { utils::str::get_line(str, y) };
+    const size_t len { line.length() };
+
     if (ctrl)
     {
-        uint32_t     start_x { x };
-        std::string  line { utils::get_line(str, y) };
-        const size_t len { line.length() };
+        uint32_t start_x { x };
 
-        if (x <= len && is_word_bound(line[x])) x++;
-        while (x < len && !is_word_bound(line[x])) x++;
+        if (x < len && utils::str::is_word_bound(line[x]))
+        {
+            x++;
+            while (x < len && utils::str::is_word_bound(line[x])) x++;
+        }
+        else
+        {
+            while (x < len && !utils::str::is_word_bound(line[x])) x++;
+        }
+
         max_x = x;
-
-        for (uint32_t _ { 0 }; _ < (x - start_x); _++) io::print("\033[C");
+        RUN_FUNC_N(x - start_x) io::print("\033[C");
     }
-    else if (x < utils::get_line(str, y).length())
+    else
     {
-        io::print("\033[C");
-        x++;
-        return true;
-    }
+        if (x < len)
+        {
+            io::print("\033[C");
+            x++;
+        }
+        else if (y < std::ranges::count(str, '\n'))
+        {
+            io::print("\033[G");
+            io::print("\033[B");
 
-    size_t line_amount { static_cast<size_t>(std::ranges::count(str, '\n')) };
-    if (y < line_amount)
-    {
-        io::print("\033[G");
-        io::print("\033[B");
-
-        x = 0;
-        y++;
+            x = 0;
+            y++;
+        }
     }
 
     return true;
@@ -121,44 +119,41 @@ Cursor::handle_right_arrow(const std::string &str, bool ctrl) -> bool
 auto
 Cursor::handle_left_arrow(const std::string &str, bool ctrl) -> bool
 {
-    /*
-     * CTRL + LEFT: If not on the first character of the line,
-     *              move cursor left until punctuation/space.
-     *              Else, move to the previous line, and put
-     *              cursor at the end of the line, or do nothing.
-     *
-     * LEFT: If not on the first character of the line, move cursor left once,
-     *       else, move to the previous line, and put cursor at
-     *       the last character of the line, or do nothing.
-    */
+    std::string line { utils::str::get_line(str, y) };
+
     if (ctrl)
     {
-        uint32_t    start_x { x };
-        std::string line { utils::get_line(str, y) };
-        if (x > 0 && is_word_bound(line[x - 1])) x--;
-        while (x > 0 && !is_word_bound(line[x - 1])) x--;
+        uint32_t start_x { x };
+
+        if (x > 0 && utils::str::is_word_bound(line[x - 1]))
+        {
+            x--;
+            while (x > 0 && utils::str::is_word_bound(line[x - 1])) x--;
+        }
+        else
+        {
+            while (x > 0 && !utils::str::is_word_bound(line[x - 1])) x--;
+        }
+
         max_x = x;
-
-        for (auto _ : utils::range(0U, start_x - x)) io::print("\033[D");
-
-        return true;
+        RUN_FUNC_N(start_x - x) io::print("\033[D");
     }
-
-    if (x > 0)
+    else
     {
-        io::print("\033[D");
-        x--;
+        if (x > 0)
+        {
+            io::print("\033[D");
+            x--;
+        }
+        else if (y > 0)
+        {
+            y--;
+            line = utils::str::get_line(str, y);
+            x    = line.length() - 1;
 
-        return true;
-    }
-
-    if (y > 0)
-    {
-        io::print("\033[A");
-        y--;
-
-        x = utils::get_line(str, y).length() - 1;
-        io::print("\033[{}G", x + 1);
+            io::print("\033[A");
+            RUN_FUNC_N(x + 1) io::print("\033[G");
+        }
     }
 
     return true;

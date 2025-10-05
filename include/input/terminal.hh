@@ -4,6 +4,7 @@
 
 #include <termios.h>
 
+#include "history/history.hh"
 #include "input/cursor.hh"
 
 
@@ -45,6 +46,9 @@ namespace input::term
         auto is_active() const -> bool;
 
     private:
+        std::unique_ptr<history::Handler> m_history;
+        std::string                       m_current_text;
+
         std::istream *m_stream;
         std::string   m_u8_buffer;
         size_t        m_u8_expected_len;
@@ -61,9 +65,10 @@ namespace input::term
 
 
         void handle_backspace(std::string &str, bool ctrl);
-        auto handle_arrow(const std::string &str, std::streambuf *sbuf) -> bool;
+        auto handle_arrow(std::string &str, std::streambuf *sbuf) -> bool;
 
-        auto handle_history(const std::string &current) -> bool;
+        auto handle_history(Cursor::Direction dir, std::string &current)
+            -> bool;
 
         static Handler *m_handler_instance;
         static void     sigint_handler(int sig);
