@@ -180,7 +180,7 @@ Handler::handle_arrow(const std::string &str, std::streambuf *sbuf) -> bool
 
     const std::string &seq { *seq_buff };
     const bool         ctrl { seq.starts_with("[1;5") };
-    const auto         dir { CursorPosition::Direction(seq.back()) };
+    const auto         dir { Cursor::Direction(seq.back()) };
 
     /* dir is either C/D */
     if (dir >= 'C') return m_pos.handle_arrows(dir, str, ctrl);

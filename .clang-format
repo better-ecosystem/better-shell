@@ -1,4 +1,6 @@
-AccessModifierOffset: 0
+Language: Cpp
+
+AccessModifierOffset:  -4
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Left
 AlignConsecutiveAssignments:
@@ -130,7 +132,7 @@ IncludeCategories:
     Priority:        1
   - Regex:           '^<.*>$'
     Priority:        2
-  - Regex:           '^"(giomm|gtkmm|glibmm|json)/.*"$'
+  - Regex:           '^<(giomm|gtkmm|glibmm|json)/.*>$'
     Priority:        3
   - Regex:           '^".*\.hh"$'
     Priority:        4
@@ -138,6 +140,7 @@ IncludeCategories:
 IncludeIsMainRegex: '(Test)?$'
 IncludeIsMainSourceRegex: ''
 
+IndentAccessModifiers:      false
 IndentCaseBlocks:           true
 IndentCaseLabels:           false
 IndentExternBlock:          AfterExternBlock

@@ -1,7 +1,8 @@
 #include <giomm.h>
 #include <glibmm.h>
 
-#include "parser/token.hh"
+#include "parser/tokenizer.hh"
+#include "utils.hh"
 
 using namespace std::string_literals;
 using parser::Token;
@@ -22,10 +23,6 @@ namespace
                 bracket_nest++;
                 continue;
             }
-
-            if (str[i] != '{')
-                throw std::invalid_argument(
-                    "start index doesn't point at an open curly braces");
 
             if (str[i] == '}')
             {
@@ -70,6 +67,7 @@ Token::tokenize(std::string &str) -> std::vector<Token>
         {
             size_t      end_idx { find_last_close_bracket(str, i + 1) };
             std::string cp_str { str.substr(i + 2, (end_idx - i - 2)) };
+
             tokens.emplace_back(TokenType::SUBSTITUTE, tokenize(cp_str));
             i = end_idx;
             continue;
@@ -108,10 +106,10 @@ Token::tokenize(std::string &str) -> std::vector<Token>
 void
 parser::get_executable()
 {
-    const char *PATH { std::getenv("PATH") };
-    if (PATH == nullptr) return;
+    std::string path { utils::getenv(
+        "PATH", "/usr/local/sbin:/usr/local/bin:/usr/bin") };
 
-    std::istringstream iss { PATH };
+    std::istringstream iss { path };
     for (std::string dir; std::getline(iss, dir, ':');)
     {
         if (dir.empty()) continue;

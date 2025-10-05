@@ -1,5 +1,5 @@
 input_files = files(
-    'cursor_pos.cc',
+    'cursor.cc',
     'handler.cc',
     'terminal.cc',
 )

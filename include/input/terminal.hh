@@ -4,7 +4,7 @@
 
 #include <termios.h>
 
-#include "input/cursor_pos.hh"
+#include "input/cursor.hh"
 
 
 namespace input::term
@@ -22,14 +22,13 @@ namespace input::term
 
     class Handler
     {
-        public:
+    public:
         Handler(std::istream *stream);
         ~Handler();
 
 
-        auto handle(const char     &current,
-                    std::string    &str,
-                    std::streambuf *sbuf) -> ReturnType;
+        auto handle(const char &current, std::string &str, std::streambuf *sbuf)
+            -> ReturnType;
 
 
         /**
@@ -44,11 +43,11 @@ namespace input::term
         [[nodiscard]]
         auto is_active() const -> bool;
 
-        private:
+    private:
         std::istream *m_stream;
 
-        CursorPosition m_pos;
-        bool           m_escaped;
+        Cursor m_pos;
+        bool   m_escaped;
 
         termios m_old_term;
         bool    m_is_term;
@@ -58,8 +57,7 @@ namespace input::term
 
 
         void handle_backspace(std::string &str, bool ctrl);
-        auto handle_arrow(const std::string &str, std::streambuf *sbuf)
-            -> bool;
+        auto handle_arrow(const std::string &str, std::streambuf *sbuf) -> bool;
 
         auto handle_history(const std::string &current) -> bool;
 

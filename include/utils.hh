@@ -6,18 +6,6 @@
 namespace utils
 {
     /**
-     * @brief Returns the amount of chars the cursor have to jump to
-     *        move out of a word.
-     *
-     * @param direct The direction to move. 'C' for left, 'D' for right
-     */
-    [[nodiscard]]
-    auto get_cursor_word_jump_offset(const std::string &str,
-                                     const size_t      &pos,
-                                     const char        &direct) -> size_t;
-
-
-    /**
      * @brief Gets the @p idx 's line from @p str .
      *
      * @throw This function might throw `std::out_of_range` if @p idx
@@ -35,13 +23,30 @@ namespace utils
 
 
     /**
-     * @brief Creates a range from @p _0 , to @p _1 .
+     * @brief Wrapper for `std::getenv`
+     */
+    [[nodiscard]]
+    auto getenv(const std::string &env) -> std::string;
+
+
+    /**
+     * @brief Wrapper for the `std::getenv`
+     *
+     * when the returned value is nullptr, the function will return
+     * @p val instead.
+     */
+    [[nodiscard]]
+    auto getenv(const std::string &env, const std::string &val) -> std::string;
+
+
+    /**
+     * @brief Creates a range from @p start , to @p end .
      */
     template <typename Tp>
     [[nodiscard]]
     auto
-    range(Tp _0, Tp _1)
+    range(Tp start, Tp end)
     {
-        return std::views::iota(_0) | std::views::take(_1);
+        return std::views::iota(start) | std::views::take(end);
     }
 }

@@ -2,9 +2,9 @@
 
 #include <giomm/init.h>
 
-#include "formatter.hh"
+#include "formatters.hh"
 #include "input/handler.hh"
-#include "parser/token.hh"
+#include "parser/tokenizer.hh"
 #include "print.hh"
 
 

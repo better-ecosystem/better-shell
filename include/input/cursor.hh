@@ -1,13 +1,12 @@
 #pragma once
-#ifndef __BetterShell__input_cursor_pos_hh
-#define __BetterShell__input_cursor_pos_hh
 #include <cstdint>
-#include <string>
+
+#include <glibmm/ustring.h>
 
 
 namespace input::term
 {
-    struct CursorPosition
+    struct Cursor
     {
         enum Direction : uint8_t
         {
@@ -22,7 +21,7 @@ namespace input::term
         uint32_t y { 0 };
 
         uint32_t last_x { 0 };
-        uint32_t max_x  { 0 };
+        uint32_t max_x { 0 };
 
 
         [[nodiscard]]
@@ -36,9 +35,8 @@ namespace input::term
          *         or false if nothing has changed.
          */
         [[nodiscard]]
-        auto handle_arrows( Direction          dir,
-                            const std::string &str,
-                            bool               ctrl ) -> bool;
+        auto handle_arrows(Direction dir, const Glib::ustring &str, bool ctrl)
+            -> bool;
 
 
         /**
@@ -50,7 +48,7 @@ namespace input::term
          *        going out of range from the string's length.
          */
         [[nodiscard]]
-        auto get_string_idx( const std::string &str ) const -> size_t;
+        auto get_string_idx(const Glib::ustring &str) const -> size_t;
 
     private:
         [[nodiscard]]
@@ -58,18 +56,14 @@ namespace input::term
 
 
         [[nodiscard]]
-        auto handle_down_arrow( const std::string &str ) -> bool;
+        auto handle_down_arrow(const Glib::ustring &str) -> bool;
 
 
         [[nodiscard]]
-        auto handle_right_arrow( const std::string &str,
-                                 bool               ctrl ) -> bool;
+        auto handle_right_arrow(const Glib::ustring &str, bool ctrl) -> bool;
 
 
         [[nodiscard]]
-        auto handle_left_arrow( const std::string &str,
-                                bool               ctrl ) -> bool;
+        auto handle_left_arrow(const Glib::ustring &str, bool ctrl) -> bool;
     };
 }
-
-#endif /* __BetterShell__input_cursor_pos_hh */

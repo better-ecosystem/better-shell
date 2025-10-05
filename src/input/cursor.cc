@@ -1,35 +1,33 @@
 #include <algorithm>
-#include <ranges>
 
-#include "input/cursor_pos.hh"
+#include "input/cursor.hh"
 #include "print.hh"
 #include "utils.hh"
 
-using input::term::CursorPosition;
+using input::term::Cursor;
 
 
 namespace
 {
     [[nodiscard]]
     auto
-    is_word_bound(char c) -> bool
+    is_word_bound(gunichar c) -> bool
     {
-        return ((std::isspace(c) != 0) || (std::ispunct(c) != 0));
+        return ((g_unichar_isspace(c) != 0) || (g_unichar_ispunct(c) != 0));
     }
 }
 
 
 auto
-CursorPosition::is_zero() const noexcept -> bool
+Cursor::is_zero() const noexcept -> bool
 {
     return x == 0 && y == 0;
 }
 
 
 auto
-CursorPosition::handle_arrows(Direction          dir,
-                              const std::string &str,
-                              bool               ctrl) -> bool
+Cursor::handle_arrows(Direction dir, const Glib::ustring &str, bool ctrl)
+    -> bool
 {
     switch (dir)
     {
@@ -42,7 +40,7 @@ CursorPosition::handle_arrows(Direction          dir,
 
 
 auto
-CursorPosition::get_string_idx(const std::string &str) const -> size_t
+Cursor::get_string_idx(const Glib::ustring &str) const -> size_t
 {
     size_t line { 0 };
     size_t char_x { 0 };
@@ -51,9 +49,7 @@ CursorPosition::get_string_idx(const std::string &str) const -> size_t
     {
         if (line == y && char_x == x) return i;
 
-        unsigned char c { static_cast<unsigned char>(str[i]) };
-
-        size_t advance = (c < 0x80) ? 1 : (c < 0xE0) ? 2 : (c < 0xF0) ? 3 : 4;
+        gunichar c { str[i] };
 
         if (c == '\n')
         {
@@ -66,7 +62,7 @@ CursorPosition::get_string_idx(const std::string &str) const -> size_t
 
         if (line == y) char_x++;
 
-        i += advance;
+        i += 1;
     }
 
     if (line == y && char_x == x) return str.size();
@@ -76,7 +72,7 @@ CursorPosition::get_string_idx(const std::string &str) const -> size_t
 
 
 auto
-CursorPosition::handle_up_arrow() -> bool
+Cursor::handle_up_arrow() -> bool
 {
     /*
      * UP: If not on the first line, cursor should move up 1 line,
@@ -91,7 +87,7 @@ CursorPosition::handle_up_arrow() -> bool
 
 
 auto
-CursorPosition::handle_down_arrow(const std::string &str) -> bool
+Cursor::handle_down_arrow(const Glib::ustring &str) -> bool
 {
     /*
      * DOWN: If not on the last line, cursor should move down 1 line,
@@ -109,8 +105,7 @@ CursorPosition::handle_down_arrow(const std::string &str) -> bool
 
 
 auto
-CursorPosition::handle_right_arrow(const std::string &str, bool ctrl)
-    -> bool
+Cursor::handle_right_arrow(const Glib::ustring &str, bool ctrl) -> bool
 {
     /*
      * CTRL + RIGHT: If not on the last character of the line,
@@ -124,9 +119,9 @@ CursorPosition::handle_right_arrow(const std::string &str, bool ctrl)
     */
     if (ctrl)
     {
-        uint32_t     start_x { x };
-        std::string  line { utils::get_line(str, y) };
-        const size_t len { line.length() };
+        uint32_t      start_x { x };
+        Glib::ustring line { utils::get_line(str, y) };
+        const size_t  len { line.length() };
 
         if (x <= len && is_word_bound(line[x])) x++;
         while (x < len && !is_word_bound(line[x])) x++;
@@ -156,7 +151,7 @@ CursorPosition::handle_right_arrow(const std::string &str, bool ctrl)
 
 
 auto
-CursorPosition::handle_left_arrow(const std::string &str, bool ctrl) -> bool
+Cursor::handle_left_arrow(const Glib::ustring &str, bool ctrl) -> bool
 {
     /*
      * CTRL + LEFT: If not on the first character of the line,
@@ -170,8 +165,8 @@ CursorPosition::handle_left_arrow(const std::string &str, bool ctrl) -> bool
     */
     if (ctrl)
     {
-        uint32_t    start_x { x };
-        std::string line { utils::get_line(str, y) };
+        uint32_t      start_x { x };
+        Glib::ustring line { utils::get_line(str, y) };
         if (x > 0 && is_word_bound(line[x - 1])) x--;
         while (x > 0 && !is_word_bound(line[x - 1])) x--;
         max_x = x;
