@@ -44,6 +44,17 @@ namespace utils
 
         [[nodiscard]]
         auto is_word_bound(const unsigned char &ch) -> bool;
+
+
+        /**
+         * Moves @p idx to @p dir direction a word,
+         * and returns the current index.
+         *
+         * @p dir can be -1 for left, and 1 for right
+         */
+        [[nodiscard]]
+        auto move_idx_to_direction(const std::string &str, size_t idx, int dir)
+            -> size_t;
     }
 
 

@@ -7,17 +7,6 @@
 using input::term::Cursor;
 
 
-namespace
-{
-    template <typename... T_Args>
-    void
-    print(std::format_string<T_Args...> fmt, T_Args &&...args)
-    {
-        io::print(fmt, std::forward<T_Args>(args)...);
-    }
-}
-
-
 auto
 Cursor::is_zero() const noexcept -> bool
 {
@@ -48,8 +37,7 @@ Cursor::get_string_idx(const std::string &str) const -> size_t
         if (line == y && char_x == x) return i;
 
         unsigned char c { static_cast<unsigned char>(str[i]) };
-
-        size_t advance = (c < 0x80) ? 1 : (c < 0xE0) ? 2 : (c < 0xF0) ? 3 : 4;
+        const size_t  advance { utils::utf8::get_expected_length(c) };
 
         if (c == '\n')
         {
@@ -81,16 +69,7 @@ Cursor::handle_right_arrow(const std::string &str, bool ctrl) -> bool
     if (ctrl)
     {
         uint32_t start_x { x };
-
-        if (x < len && utils::str::is_word_bound(line[x]))
-        {
-            x++;
-            while (x < len && utils::str::is_word_bound(line[x])) x++;
-        }
-        else
-        {
-            while (x < len && !utils::str::is_word_bound(line[x])) x++;
-        }
+        x = utils::str::move_idx_to_direction(line, x, 1);
 
         max_x = x;
         RUN_FUNC_N(x - start_x) io::print("\033[C");
@@ -124,16 +103,7 @@ Cursor::handle_left_arrow(const std::string &str, bool ctrl) -> bool
     if (ctrl)
     {
         uint32_t start_x { x };
-
-        if (x > 0 && utils::str::is_word_bound(line[x - 1]))
-        {
-            x--;
-            while (x > 0 && utils::str::is_word_bound(line[x - 1])) x--;
-        }
-        else
-        {
-            while (x > 0 && !utils::str::is_word_bound(line[x - 1])) x--;
-        }
+        x = utils::str::move_idx_to_direction(line, x, -1);
 
         max_x = x;
         RUN_FUNC_N(start_x - x) io::print("\033[D");

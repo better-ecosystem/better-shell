@@ -113,6 +113,45 @@ namespace utils
         {
             return (std::isspace(ch) != 0) || (std::ispunct(ch) != 0);
         }
+
+
+        auto
+        move_idx_to_direction(const std::string &str, size_t idx, int dir)
+            -> size_t
+        {
+            if (dir < 0)
+            {
+                if (utils::str::is_word_bound(str[idx - 1]))
+                {
+                    idx--;
+                    while (idx > 0 && utils::str::is_word_bound(str[idx - 1]))
+                        idx--;
+                }
+                else
+                {
+                    while (idx > 0 && !utils::str::is_word_bound(str[idx - 1]))
+                        idx--;
+                }
+            }
+            else if (dir > 0)
+            {
+                const size_t LEN { str.length() };
+
+                if (idx < LEN && utils::str::is_word_bound(str[idx]))
+                {
+                    idx++;
+                    while (idx < LEN && utils::str::is_word_bound(str[idx]))
+                        idx++;
+                }
+                else
+                {
+                    while (idx < LEN && !utils::str::is_word_bound(str[idx]))
+                        idx++;
+                }
+            }
+
+            return idx;
+        }
     } /* namespace str */
 
 

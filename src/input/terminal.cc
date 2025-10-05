@@ -245,20 +245,7 @@ Handler::handle_backspace(std::string &str, bool ctrl)
             return;
         }
 
-        size_t first { idx };
-
-        /* this whole mess makes it work like how _vscode_ handles it */
-        if (utils::str::is_word_bound(str[first - 1]))
-        {
-            first--;
-            while (first > 0 && utils::str::is_word_bound(str[first - 1]))
-                first--;
-        }
-        else
-        {
-            while (first > 0 && !utils::str::is_word_bound(str[first - 1]))
-                first--;
-        }
+        size_t first { utils::str::move_idx_to_direction(str, idx, -1) };
 
         str.erase(first, idx - first);
         m_pos.x -= (idx - first);
