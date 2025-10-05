@@ -27,6 +27,10 @@ namespace utils
 
         [[nodiscard]]
         auto get_expected_length(const unsigned char &leading) -> size_t;
+
+
+        [[nodiscard]]
+        auto length(const std::string &str) -> size_t;
     }
 
 
@@ -55,6 +59,22 @@ namespace utils
         [[nodiscard]]
         auto move_idx_to_direction(const std::string &str, size_t idx, int dir)
             -> size_t;
+    }
+
+
+    namespace ansi
+    {
+        [[nodiscard]]
+        auto is_arrow(const std::string &seq) -> bool;
+
+
+        [[nodiscard]]
+        auto is_ctrl_pressed(const std::string &seq) -> bool;
+
+
+        /* returns -1 for home, 1 for end, 0 for not */
+        [[nodiscard]]
+        auto is_home_end(const std::string &seq) -> int;
     }
 
 

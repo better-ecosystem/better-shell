@@ -27,6 +27,38 @@ Cursor::handle_arrows(Direction dir, const std::string &str, bool ctrl) -> bool
 
 
 auto
+Cursor::handle_home_end(int type, const std::string &str, bool ctrl) -> bool
+{
+    if (!ctrl)
+    {
+        if (type == -1) /* home */
+        {
+            while (x > 0)
+            {
+                io::print("\033[D");
+                x--;
+            }
+        }
+        else if (type == 1) /* end */
+        {
+            std::string  line { utils::str::get_line(str, y) };
+            const size_t LEN { line.length() };
+
+            while (x < LEN)
+            {
+                io::print("\033[C");
+                x++;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+
+auto
 Cursor::get_string_idx(const std::string &str) const -> size_t
 {
     size_t line { 0 };
@@ -64,7 +96,7 @@ auto
 Cursor::handle_right_arrow(const std::string &str, bool ctrl) -> bool
 {
     std::string  line { utils::str::get_line(str, y) };
-    const size_t len { line.length() };
+    const size_t LEN { line.length() };
 
     if (ctrl)
     {
@@ -76,7 +108,7 @@ Cursor::handle_right_arrow(const std::string &str, bool ctrl) -> bool
     }
     else
     {
-        if (x < len)
+        if (x < LEN)
         {
             io::print("\033[C");
             x++;

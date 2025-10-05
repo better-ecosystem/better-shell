@@ -39,6 +39,14 @@ namespace input::term
 
 
         /**
+         * @p type can be -1 for HOME, and 1 for END.
+         */
+        [[nodiscard]]
+        auto handle_home_end(int type, const std::string &str, bool ctrl)
+            -> bool;
+
+
+        /**
          * @brief Gets the absolute index of @p str
          *        from the x, and y position.
          *

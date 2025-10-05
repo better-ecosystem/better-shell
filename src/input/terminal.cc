@@ -131,7 +131,7 @@ Handler::handle(const unsigned char &current,
     /* ANSI escape code */
     if (current == '\033')
     {
-        if (!handle_arrow(str, sbuf)) return RETURN_EXIT;
+        if (!handle_ansi(str, sbuf)) return RETURN_EXIT;
         return RETURN_CONTINUE;
     }
 
@@ -259,16 +259,27 @@ Handler::handle_backspace(std::string &str, bool ctrl)
 
 
 auto
-Handler::handle_arrow(std::string &str, std::streambuf *sbuf) -> bool
+Handler::handle_ansi(std::string &str, std::streambuf *sbuf) -> bool
 {
     auto seq_buff { get_ansi_sequence(sbuf) };
     if (!seq_buff) return false;
 
     const std::string &seq { *seq_buff };
-    const bool         ctrl { seq.starts_with("[1;5") };
-    const auto         dir { Cursor::Direction(seq.back()) };
 
-    return m_pos.handle_arrows(dir, str, ctrl) || handle_history(dir, str);
+    const bool ctrl { utils::ansi::is_ctrl_pressed(seq) };
+    const char back { seq.back() };
+
+    if (back >= Cursor::DIR_UP && back <= Cursor::DIR_LEFT)
+    {
+        const auto dir { Cursor::Direction(seq.back()) };
+        return m_pos.handle_arrows(dir, str, ctrl) || handle_history(dir, str);
+    }
+
+    if (int home_end { utils::ansi::is_home_end(seq) }; home_end != 0)
+    {
+        return m_pos.handle_home_end(home_end, str, ctrl);
+    }
+    return true;
 }
 
 
@@ -289,6 +300,7 @@ Handler::handle_history(Cursor::Direction dir, std::string &current) -> bool
         }
         current = *text;
     }
+
     if (dir == Cursor::DIR_UP)
     {
         auto text { m_history->get_prev() };

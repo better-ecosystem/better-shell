@@ -82,6 +82,29 @@ namespace utils
             if ((leading & 0b11111000) == 0b11110000) return 4;
             return 1;
         }
+
+
+        auto
+        length(const std::string &str) -> size_t
+        {
+            size_t length { 0 };
+            size_t i { 0 };
+
+            while (i < str.size())
+            {
+                auto c { static_cast<unsigned char>(str[i]) };
+
+                size_t char_len { get_expected_length(c) };
+
+                i += char_len;
+                if (i > str.size())
+                    throw std::runtime_error("Truncated UTF-8 character");
+
+                length++;
+            }
+
+            return length;
+        }
     } /* namespace utf8 */
 
 
@@ -119,40 +142,63 @@ namespace utils
         move_idx_to_direction(const std::string &str, size_t idx, int dir)
             -> size_t
         {
-            if (dir < 0)
-            {
-                if (utils::str::is_word_bound(str[idx - 1]))
-                {
-                    idx--;
-                    while (idx > 0 && utils::str::is_word_bound(str[idx - 1]))
-                        idx--;
-                }
-                else
-                {
-                    while (idx > 0 && !utils::str::is_word_bound(str[idx - 1]))
-                        idx--;
-                }
-            }
-            else if (dir > 0)
-            {
-                const size_t LEN { str.length() };
+#define CHECK dir < 0 ? idx > 0 : idx < LEN
 
-                if (idx < LEN && utils::str::is_word_bound(str[idx]))
-                {
-                    idx++;
-                    while (idx < LEN && utils::str::is_word_bound(str[idx]))
-                        idx++;
-                }
-                else
-                {
-                    while (idx < LEN && !utils::str::is_word_bound(str[idx]))
-                        idx++;
-                }
+            const int    OFFSET { dir < 0 ? 1 : 0 };
+            const size_t LEN { str.length() };
+
+            if (CHECK && utils::str::is_word_bound(idx - OFFSET))
+            {
+                idx += dir;
+                while (CHECK && utils::str::is_word_bound(idx - OFFSET))
+                    idx += dir;
+            }
+            else
+            {
+                while (CHECK && !utils::str::is_word_bound(idx - OFFSET))
+                    idx += dir;
             }
 
             return idx;
         }
     } /* namespace str */
+
+
+    namespace ansi
+    {
+        auto
+        is_arrow(const std::string &seq) -> bool
+        {
+            const char back { seq.back() };
+            return back >= 'A' && back <= 'D';
+        }
+
+
+        auto
+        is_ctrl_pressed(const std::string &seq) -> bool
+        {
+            size_t idx { seq.find_first_of(';') };
+            if (idx == std::string::npos) return false;
+            return seq.at(idx + 1) == 5;
+        }
+
+
+        auto
+        is_home_end(const std::string &seq) -> int
+        {
+            const char back { seq.back() };
+
+            if (back == 'H') return -1;
+            if (back == 'F') return 1;
+            if (back == '~')
+            {
+                if (seq[1] == '1') return -1;
+                if (seq[1] == '4') return 1;
+            }
+
+            return 0;
+        }
+    } /* namespace ansi */
 
 
     auto

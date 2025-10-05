@@ -65,7 +65,9 @@ namespace input::term
 
 
         void handle_backspace(std::string &str, bool ctrl);
-        auto handle_arrow(std::string &str, std::streambuf *sbuf) -> bool;
+        void handle_delete(std::string &str, bool ctrl);
+
+        auto handle_ansi(std::string &str, std::streambuf *sbuf) -> bool;
 
         auto handle_history(Cursor::Direction dir, std::string &current)
             -> bool;
