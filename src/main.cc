@@ -17,11 +17,16 @@ main(int /* argc */, char ** /* argv */) -> int
     input::Handler handler { &std::cin };
     std::string    str;
 
-    while (handler.read(str) != 0U)
+    while (!handler.should_exit())
     {
+        size_t len { handler.read(str) };
+
         if (handler.should_exit()) break;
+        if (len == 0) continue;
+
 
         std::vector<parser::Token> tokens;
+
         try
         {
             tokens = parser::Token::tokenize(str);

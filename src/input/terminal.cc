@@ -37,6 +37,14 @@ namespace
 
         return buff.data();
     }
+
+
+    [[nodiscard]]
+    auto
+    is_word_boundary(unsigned char c) -> bool
+    {
+        return std::ispunct(c) != 0 || std::isspace(c) != 0;
+    }
 }
 
 
@@ -100,7 +108,7 @@ Handler::handle(const unsigned char &current,
     if (current == '\\')
     {
         m_escaped = true;
-        io::print("{}", current);
+        io::print("{}", static_cast<char>(current));
         insert_char_to_cursor(str, current);
         return RETURN_CONTINUE;
     }
@@ -162,7 +170,6 @@ Handler::handle(const unsigned char &current,
         insert_char_to_cursor(str, current);
     }
 
-
     m_escaped = false;
 
     return RETURN_NONE;
@@ -222,12 +229,44 @@ Handler::handle_backspace(std::string &str, bool ctrl)
     if (m_pos.x > 0)
     {
         size_t idx { m_pos.get_string_idx(str) };
-        str.erase(idx - 1, 1);
-        m_pos.x--;
 
-        io::print("\033[D");
+        if (!ctrl)
+        {
+            str.erase(idx - 1, 1);
+            m_pos.x--;
+
+            io::print("\033[D");
+            io::print("\033[s");
+            io::print("{} ", str.substr(idx - 1));
+            io::print("\033[u");
+            return;
+        }
+
+        size_t first { idx };
+
+        if (is_word_boundary(str[first - 1])) first--;
+        if (is_word_boundary(str[first - 1]))
+        {
+            while (first > 0 && is_word_boundary(str[first - 1]))
+            {
+                first--;
+            }
+        }
+        else
+        {
+            while (first > 0 && !is_word_boundary(str[first - 1]))
+            {
+                first--;
+            }
+        }
+
+
+        str.erase(first, idx - first);
+        m_pos.x -= (idx - first);
+
+        for (auto _ : utils::range<size_t>(0, idx - first)) io::print("\033[D");
         io::print("\033[s");
-        io::print("{} ", str.substr(idx - 1));
+        io::print("{}{}", str.substr(first), std::string(idx - first, ' '));
         io::print("\033[u");
     }
 }
