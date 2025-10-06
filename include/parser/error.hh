@@ -7,32 +7,6 @@
 #include "utils.hh"
 
 
-namespace
-{
-    [[nodiscard]]
-    auto
-    line_column_from_offset(const std::string &text, size_t offset)
-        -> std::pair<size_t, size_t>
-    {
-        size_t line { 0 };
-        size_t col { 0 };
-
-        for (size_t i { 0 }; i < offset && i < text.size(); i++)
-        {
-            if (text[i] == '\n')
-            {
-                line++;
-                col = 0;
-            }
-            else
-                col++;
-        }
-
-        return { line, col };
-    }
-}
-
-
 namespace parser
 {
     struct TokenGroup;
@@ -75,53 +49,66 @@ namespace parser
                 return;
             }
 
-
             const std::string &INPUT { tokens.raw };
             const Token       &TOKEN { tokens.tokens[m_token_idx] };
-            const std::string &TEXT  { TOKEN.get_data<std::string>()};
 
-            size_t search_start { 0 };
-            for (size_t i { 0 }; i < m_token_idx; ++i)
+            std::string text;
+            try
             {
-                const std::string TEXT {
-                    tokens.tokens[i].get_data<std::string>()
-                };
-
-                auto found { INPUT.find(TEXT, search_start) };
-                if (found != std::string::npos)
-                    search_start = found + TEXT.length();
+                text = TOKEN.get_data<std::string>();
+            }
+            catch (const std::bad_variant_access &)
+            {
+                m_pretty = std::format(
+                    "error: {} (token {} has no associated string data)",
+                    m_message, m_token_idx);
+                return;
             }
 
-            size_t token_offset { INPUT.find(TEXT, search_start) };
-            if (token_offset == std::string::npos) token_offset = 0;
+            const auto [LINE_NUM, COL_NUM] { line_column_from_offset(
+                INPUT, TOKEN.index) };
 
-            auto [line_num,
-                  col_num] { line_column_from_offset(INPUT, token_offset) };
-            auto        lines { utils::str::split_lines(INPUT) };
-            std::string underline_marker {
-                std::string(col_num, ' ')
-                + std::string(std::max<size_t>(1, TEXT.size()), '^')
+            const auto LINES { utils::str::split_lines(INPUT) };
+
+            const size_t UNDERLINE_LENGTH { std::max<size_t>(1,
+                                                             text.length()) };
+
+            const std::string UNDERLINE_MARKER {
+                std::string(COL_NUM, ' ') + std::string(UNDERLINE_LENGTH, '^')
             };
 
             std::ostringstream oss;
 
-            oss << ANSI_RGB_FG(211, 79, 109) "error " << static_cast<int>(type)
-                << COLOR_RESET ": " << m_message << "\n\n";
-            oss << "  ╭─ " ANSI_RGB_FG(70, 172, 173) "shell input: " COLOR_RESET
-                << std::format("{}:{}\n", line_num + 1, col_num + 1);
+            /* error N: <message> */
+            oss << ANSI_RGB_FG(253, 106, 106) "error "
+                << static_cast<int>(m_type) << COLOR_RESET ": " << m_message
+                << "\n\n";
+
+            oss << "  ╭─[" ANSI_RGB_FG(70, 172, 173) "shell input: " COLOR_RESET
+                << std::format("{}:{}]\n", LINE_NUM + 1, COL_NUM + 1);
             oss << "  │" << "\n";
 
-            for (size_t i { std::max<size_t>(0, line_num - 1) };
-                 i <= std::min(line_num + 1, lines.size() - 1); i++)
+            size_t i { LINE_NUM > 0 ? LINE_NUM - 1 : 0 };
+
+            for (; i <= std::min(LINE_NUM + 1, LINES.size() - 1); ++i)
             {
-                oss << std::format("{} │ {}\n", i + 1, lines[i]);
-                if (i == line_num)
+                oss << std::format("{} │ {}\n", i + 1, LINES[i]);
+
+                if (i == LINE_NUM)
                 {
-                    oss << "  │   " ANSI_RGB_FG(211, 79, 109)
-                        << underline_marker << " " COLOR_RESET << m_message
-                        << "\n";
+                    oss << "  · " ANSI_RGB_FG(211, 79, 109) << UNDERLINE_MARKER
+                        << '\n';
+
+                    oss << COLOR_RESET "  · " << std::string(COL_NUM, ' ')
+                        << m_message << "\n";
                 }
             }
+
+            std::string end_line { "  ╰─" };
+            RUN_FUNC_N(UNDERLINE_MARKER.length() - UNDERLINE_LENGTH,
+                       end_line.append, "─");
+            RUN_FUNC_N(m_message.length(), end_line.append, _ % 2 ? "·" : " ");
+            oss << end_line << '\n';
 
             m_pretty = oss.str();
         }
@@ -136,5 +123,11 @@ namespace parser
         size_t      m_token_idx;
 
         std::string m_pretty;
+
+
+        [[nodiscard]]
+        static auto line_column_from_offset(const std::string &text,
+                                            size_t             offset)
+            -> std::pair<size_t, size_t>;
     };
 }

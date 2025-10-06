@@ -14,7 +14,7 @@
 auto
 main(int /* argc */, char ** /* argv */) -> int
 {
-    // cmd::fill_binary_path_list();
+    cmd::fill_binary_path_list();
     std::setlocale(LC_CTYPE, "");
     Gio::init();
 

@@ -124,13 +124,22 @@ namespace parser
     {
         using enum TokenType;
 
-        if (!verify_command(*this, this->tokens.front())) return std::nullopt;
+        auto err { verify_command(*this, this->tokens.front()) };
+        if (err) return err;
 
         std::stack<std::pair<char, size_t>> quote_stack;
         std::stack<size_t>                  bracket_stack;
 
         for (size_t i { 1 }; i < this->tokens.size(); i++)
         {
+            if (this->tokens[i].type == SUB_CONTENT)
+            {
+                auto res {
+                    this->tokens[i].get_data<TokenGroup>().verify_syntax()
+                };
+                if (res) return res;
+            }
+
             auto res { check_string_quote_token(*this, quote_stack, i) };
             if (res) return res;
 

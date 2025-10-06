@@ -149,6 +149,12 @@ namespace parser
 
 
         /**
+         * stores the first byte of @e data 's index from the parsed string
+         */
+        size_t index;
+
+
+        /**
          * contains the raw text of the token or another token group
          * ----------------------------------
          *

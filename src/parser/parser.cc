@@ -42,9 +42,8 @@ namespace parser
                     throw std::invalid_argument("Unterminated quoted argument");
 
                 std::string arg { text.substr(start, i - start) };
-                tokens.emplace_back(TokenType::ARGUMENT, std::move(arg),
+                tokens.emplace_back(TokenType::ARGUMENT, start, std::move(arg),
                                     std::nullopt);
-
                 i++;
                 return;
             }
@@ -55,8 +54,8 @@ namespace parser
             if (start < i)
             {
                 std::string arg { text.substr(start, i - start) };
-                tokens.emplace_back(parser::TokenType::ARGUMENT, std::move(arg),
-                                    std::nullopt);
+                tokens.emplace_back(parser::TokenType::ARGUMENT, start,
+                                    std::move(arg), std::nullopt);
             }
         }
 
@@ -96,7 +95,7 @@ namespace parser
             if (text[i] != '$' || i + 1 >= text.size() || text[i + 1] != '{')
                 return false;
 
-            tokens.emplace_back(TokenType::SUB_BRACKET, "${",
+            tokens.emplace_back(TokenType::SUB_BRACKET, i, "${",
                                 BracketKind::OPEN);
             i += 2;
 
@@ -106,8 +105,8 @@ namespace parser
             inner = utils::str::trim(inner);
             TokenGroup inner_tokens { parser::parse(inner) };
 
-            tokens.emplace_back(TokenType::SUB_CONTENT, std::move(inner_tokens),
-                                std::nullopt);
+            tokens.emplace_back(TokenType::SUB_CONTENT, i,
+                                std::move(inner_tokens), std::nullopt);
             i = END_IDX - 1;
             return true;
         }
@@ -128,18 +127,18 @@ namespace parser
             {
                 size_t len { 2 };
                 while (i + len < LEN && std::isspace(text[i + len]) == 0) len++;
-                tokens.emplace_back(TokenType::FLAG, text.substr(i, len),
+                tokens.emplace_back(TokenType::FLAG, i, text.substr(i, len),
                                     FlagKind::LONG);
                 i += len - 1;
                 return true;
             }
 
             /* Handle clustered short options: -abc -> -a, -b, -c */
-            size_t len = 1;
+            size_t len { 1 };
             while (i + len < LEN && std::isspace(text[i + len]) == 0
                    && text[i + len] != '=')
             {
-                tokens.emplace_back(TokenType::FLAG, "-"s + text[i + len],
+                tokens.emplace_back(TokenType::FLAG, i, "-"s + text[i + len],
                                     FlagKind::SHORT);
                 len++;
             }
@@ -154,7 +153,7 @@ namespace parser
     parse(const std::string &text) -> TokenGroup
     {
         std::vector<Token> tokens;
-        tokens.emplace_back(TokenType::COMMAND, get_command(text),
+        tokens.emplace_back(TokenType::COMMAND, 0, get_command(text),
                             std::nullopt);
         size_t i { tokens.back().get_data<std::string>().length() };
 
@@ -169,12 +168,12 @@ namespace parser
 
             if (text[i] == '}')
             {
-                tokens.emplace_back(TokenType::SUB_BRACKET, "}",
+                tokens.emplace_back(TokenType::SUB_BRACKET, i, "}",
                                     BracketKind::CLOSE);
                 continue;
             }
         }
 
-        return { .tokens = std::move(tokens), .raw = text };
+        return { .tokens = std::move(tokens), .raw = utils::str::trim(text) };
     }
 }

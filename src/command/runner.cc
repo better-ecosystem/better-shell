@@ -14,8 +14,11 @@ namespace cmd
         for (std::string dir; std::getline(iss, dir, ':');)
         {
             if (dir.empty()) continue;
+            std::filesystem::path path { dir };
 
-            std::filesystem::recursive_directory_iterator it { dir };
+            if (!std::filesystem::exists(path)) continue;
+            std::filesystem::recursive_directory_iterator it { path };
+
             for (const auto &entry : it)
             {
                 if (!entry.is_regular_file()) continue;
