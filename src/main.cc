@@ -31,7 +31,7 @@ main(int /* argc */, char ** /* argv */) -> int
         try
         {
             tokens = parser::Tokens::tokenize(str);
-            io::println("{}", Json::to_string(parser::Tokens::to_json(tokens)));
+            io::println("{}", parser::Tokens::to_json(tokens).toStyledString());
         }
         catch (const std::exception &e)
         {

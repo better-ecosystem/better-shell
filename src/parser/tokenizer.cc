@@ -46,6 +46,97 @@ namespace
         iss >> word;
         return word;
     }
+
+
+    void
+    handle_arg(Tokens &tokens, size_t &i, const std::string &str)
+    {
+        const size_t LEN { str.length() };
+
+        while (i < LEN && std::isspace(str[i]) != 0) i++;
+        if (i >= LEN) return;
+
+        if (str[i] == '-') return;
+
+        if (str[i] == '"' || str[i] == '\'')
+        {
+            char   quote { str[i++] };
+            size_t start { i };
+
+            while (i < LEN && str[i] != quote) ++i;
+
+            if (i >= LEN)
+                throw std::invalid_argument("Unterminated quoted argument");
+
+            std::string arg { str.substr(start, i - start) };
+            tokens->emplace_back(parser::TokenType::ARGUMENT, std::move(arg));
+
+            i++;
+            return;
+        }
+
+        size_t start { i };
+        while (i < LEN && std::isspace(str[i]) == 0 && str[i] != '$') ++i;
+
+        if (start < i)
+        {
+            std::string arg { str.substr(start, i - start) };
+            tokens->emplace_back(parser::TokenType::ARGUMENT, std::move(arg));
+        }
+    }
+
+
+    [[nodiscard]]
+    auto
+    handle_substitution(Tokens &tokens, size_t &i, const std::string &str)
+        -> bool
+    {
+        if (str[i] != '$' || i + 1 >= str.size() || str[i + 1] != '{')
+            return false;
+
+        const size_t END_IDX { find_last_close_bracket(str, i + 1) };
+        std::string  inner { str.substr(i + 2, END_IDX - (i + 2)) };
+        inner = utils::str::trim(inner);
+
+        Tokens inner_tokens { parser::Tokens::tokenize(inner) };
+
+        tokens->emplace_back(parser::TokenType::SUBSTITUTE,
+                             std::move(inner_tokens));
+        i = END_IDX;
+        return true;
+    }
+
+
+    [[nodiscard]]
+    auto
+    handle_flag(Tokens &tokens, size_t &i, const std::string &str) -> bool
+    {
+        if (str[i] != '-' || std::isspace(str[i - 1]) == 0) return false;
+
+        const size_t LEN { str.length() };
+
+        /* Handles long arg */
+        if (i + 1 < LEN && str[i + 1] == '-')
+        {
+            size_t len { 2 };
+            while (i + len < LEN && std::isspace(str[i + len]) == 0) len++;
+            tokens->emplace_back(parser::TokenType::FLAG, str.substr(i, len));
+            i += len - 1;
+            return true;
+        }
+
+        /* Handle clustered short options: -abc -> -a, -b, -c */
+        size_t len = 1;
+        while (i + len < LEN && std::isspace(str[i + len]) == 0
+               && str[i + len] != '=')
+        {
+            tokens->emplace_back(parser::TokenType::FLAG, "-"s + str[i + len]);
+            len++;
+        }
+        i += len;
+
+        return true;
+    }
 }
 
 
@@ -54,51 +145,22 @@ Tokens::tokenize(std::string &str) -> Tokens
 {
     const size_t LEN { str.length() };
 
-    Tokens tokens;
-    tokens.raw = str;
+    Tokens tokens {
+        .tokens = { 1, { TokenType::COMMAND, get_command(str) } },
+        .raw    = str // clang-format off
+    };
 
-    tokens->emplace_back(TokenType::COMMAND, get_command(str));
-    auto *data { std::get_if<std::string>(&tokens->back().data) };
+    auto  *data { std::get_if<std::string>(&tokens->back().data) };
+    size_t i { data->length() };
 
-    for (size_t i { data->length() }; i < LEN; i++)
+    handle_arg(tokens, i, str);
+
+    for (; i < LEN; i++)
     {
         if (std::isspace(str[i]) != 0) continue;
 
-        /* Handle substitution. */
-        if (str[i] == '$' && i + 1 < str.size() && str[i + 1] == '{')
-        {
-            size_t      end_idx { find_last_close_bracket(str, i + 1) };
-            std::string cp_str { str.substr(i + 2, (end_idx - i - 2)) };
-
-            tokens->emplace_back(TokenType::SUBSTITUTE, tokenize(cp_str));
-            i = end_idx;
-            continue;
-        }
-
-        /* Handle flags */
-        if (str[i] == '-' && (std::isspace(str[i - 1]) != 0))
-        {
-            /* Handles long arg */
-            if (i + 1 < LEN && str[i + 1] == '-')
-            {
-                size_t len { 2 };
-                while (i + len < LEN && std::isspace(str[i + len]) == 0) len++;
-                tokens->emplace_back(TokenType::FLAG, str.substr(i, len));
-                i += len - 1;
-                continue;
-            }
-
-            /* Handle clustered short options: -abc -> -a, -b, -c */
-            size_t len = 1;
-            while (i + len < LEN && std::isspace(str[i + len]) == 0
-                   && str[i + len] != '=')
-            {
-                tokens->emplace_back(TokenType::FLAG, "-"s + str[i + len]);
-                len++;
-            }
-            i += len;
-            continue;
-        }
+        if (handle_substitution(tokens, i, str)) continue;
+        if (handle_flag(tokens, i, str)) continue;
     }
 
     return tokens;

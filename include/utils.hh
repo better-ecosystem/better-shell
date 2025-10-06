@@ -84,6 +84,13 @@ namespace utils
         auto move_idx_to_direction(const std::string &str,
                                    size_t             index,
                                    int                direction) -> size_t;
+
+
+        /**
+         * trims excess whitespace from @p str
+         */
+        [[nodiscard]]
+        auto trim(const std::string &str) -> std::string;
     }
 
 

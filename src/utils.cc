@@ -162,6 +162,22 @@ namespace utils
             return index;
         }
 #undef CHECK
+
+
+        auto
+        trim(const std::string &str) -> std::string
+        {
+            std::stringstream iss { str };
+            std::string       result;
+
+            for (std::string word; iss >> word;)
+            {
+                if (!result.empty()) { result += ' '; }
+                result += word;
+            }
+
+            return result;
+        }
     } /* namespace str */
 
 
