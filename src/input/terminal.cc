@@ -15,9 +15,11 @@ using input::term::Handler;
 namespace
 {
     /**
-     * @brief reads an ANSI escape sequence from stream buffer @p sbuf
+     * reads an ANSI sequence from a stream buffer @p sbuf
+     * ---------------------------------------------------
      *
-     * @return ANSI sequence (e.g., "[31m"), or an empty string on EOT/EOF
+     * returns an ANSI sequence starting from '[',
+     * or an empty string on EOT/EOF
      */
     [[nodiscard]]
     auto
@@ -252,7 +254,7 @@ Handler::handle_backspace(std::string &str, bool ctrl)
         str.erase(first, idx - first);
         m_pos.x -= (idx - first);
 
-        RUN_FUNC_N(idx - first) io::print("\033[D");
+        RUN_FUNC_N(idx - first, io::print, "\033[D")
         io::print("\033[s");
         io::print("{}{}", str.substr(first), std::string(idx - first, ' '));
         io::print("\033[u");

@@ -57,6 +57,13 @@ namespace utils
     namespace str
     {
         /**
+         * transform a multi-line string @p str into a vector of lines
+         */
+        [[nodiscard]]
+        auto split_lines(const std::string &str) -> std::vector<std::string>;
+
+
+        /**
          * returns the line at index @p idx from @p str
          * --------------------------------------------
          *
@@ -132,6 +139,21 @@ namespace utils
          */
         [[nodiscard]]
         auto is_home_end(const std::string &seq) -> int;
+
+
+#ifndef BETTER_SH_NO_COLOR
+
+#define COLOR_RESET "\033[0;0;0m"
+#define ANSI_RGB_FG(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
+#define ANSI_RGB_BG(r, g, b) "\033[48;2;" #r ";" #g ";" #b "m"
+
+#else
+
+#define COLOR_RESET
+#define ANSI_RGB_FG(r, g, b)
+#define ANSI_RGB_BG(r, g, b)
+
+#endif
     }
 
 
@@ -165,10 +187,11 @@ namespace utils
 
 
     /**
-     * repeats block code @p n times
+     * repeats function @p n times
      */
-#define RUN_FUNC_N(n) \
-    for (auto _ : utils::range(static_cast<decltype(n)>(0), n))
+#define RUN_FUNC_N(n, func, ...)                                    \
+    for (auto _ : utils::range(static_cast<decltype((n))>(0), (n))) \
+        func(__VA_ARGS__);
 }
 
 

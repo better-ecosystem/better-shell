@@ -2,41 +2,41 @@
 
 #include <giomm/init.h>
 
-#include "formatters.hh"
+#include "command/runner.hh"
 #include "input/handler.hh"
-#include "parser/tokenizer.hh"
+#include "output/handler.hh"
+#include "parser/error.hh"
+#include "parser/parser.hh"
+#include "parser/types.hh"
 #include "print.hh"
-#include "utils.hh"
 
 
 auto
 main(int /* argc */, char ** /* argv */) -> int
 {
+    // cmd::fill_binary_path_list();
     std::setlocale(LC_CTYPE, "");
     Gio::init();
 
-    input::Handler handler { &std::cin };
+    /* default, will change in the future */
+    // output::Handler output { &std::cerr };
+    input::Handler input { &std::cin };
     std::string    str;
 
-    while (!handler.should_exit())
+    while (!input.should_exit())
     {
-        size_t len { handler.read(str) };
+        size_t len { input.read(str) };
 
-        if (handler.should_exit()) break;
+        if (input.should_exit()) break;
         if (len == 0) continue;
 
+        parser::TokenGroup tokens { parser::parse(str) };
 
-        parser::Tokens tokens;
-
-        try
-        {
-            tokens = parser::Tokens::tokenize(str);
-            io::println("{}", parser::Tokens::to_json(tokens).toStyledString());
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "parsing error: " << e.what() << '\n';
-        }
+        auto err { tokens.verify_syntax() };
+        if (!err)
+            io::println("{}", tokens.to_json().toStyledString());
+        else
+            io::println("{}", err->get_message());
     }
 
     return 0;

@@ -111,6 +111,20 @@ namespace utils
     namespace str
     {
         auto
+        split_lines(const std::string &str) -> std::vector<std::string>
+        {
+            std::vector<std::string> lines;
+            lines.reserve(std::ranges::count(str, '\n') + 1);
+
+            std::istringstream iss { str };
+            for (std::string line; std::getline(iss, line);)
+                lines.emplace_back(line);
+
+            return lines;
+        }
+
+
+        auto
         get_line(const std::string &str, size_t idx) -> std::string
         {
             size_t line_start { 0 };

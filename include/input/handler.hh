@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 #include <istream>
 #include <string>
 
@@ -14,13 +13,6 @@ namespace input
 {
     class Handler
     {
-        enum BracketType : uint8_t
-        {
-            BRACKET_SINGLE,
-            BRACKET_DOUBLE,
-            BRACKET_NONE,
-        };
-
     public:
         /**
          * handle shell input from @p stream

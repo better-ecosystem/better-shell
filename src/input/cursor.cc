@@ -104,7 +104,7 @@ Cursor::handle_right_arrow(const std::string &str, bool ctrl) -> bool
         x = utils::str::move_idx_to_direction(line, x, 1);
 
         max_x = x;
-        RUN_FUNC_N(x - start_x) io::print("\033[C");
+        RUN_FUNC_N(x - start_x, io::print, "\033[C");
     }
     else
     {
@@ -138,7 +138,7 @@ Cursor::handle_left_arrow(const std::string &str, bool ctrl) -> bool
         x = utils::str::move_idx_to_direction(line, x, -1);
 
         max_x = x;
-        RUN_FUNC_N(start_x - x) io::print("\033[D");
+        RUN_FUNC_N(start_x - x, io::print, "\033[D");
     }
     else
     {
@@ -154,7 +154,7 @@ Cursor::handle_left_arrow(const std::string &str, bool ctrl) -> bool
             x    = line.length() - 1;
 
             io::print("\033[A");
-            RUN_FUNC_N(x + 1) io::print("\033[G");
+            RUN_FUNC_N(x + 1, io::print, "\033[G");
         }
     }
 
