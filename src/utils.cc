@@ -138,29 +138,30 @@ namespace utils
         }
 
 
+#define CHECK direction < 0 ? index > 0 : index < LEN
         auto
-        move_idx_to_direction(const std::string &str, size_t idx, int dir)
-            -> size_t
+        move_idx_to_direction(const std::string &str,
+                              size_t             index,
+                              int                direction) -> size_t
         {
-#define CHECK dir < 0 ? idx > 0 : idx < LEN
-
-            const int    OFFSET { dir < 0 ? 1 : 0 };
+            const int    OFFSET { direction < 0 ? 1 : 0 };
             const size_t LEN { str.length() };
 
-            if (CHECK && utils::str::is_word_bound(idx - OFFSET))
+            if (CHECK && utils::str::is_word_bound(index - OFFSET))
             {
-                idx += dir;
-                while (CHECK && utils::str::is_word_bound(idx - OFFSET))
-                    idx += dir;
+                index += direction;
+                while (CHECK && utils::str::is_word_bound(index - OFFSET))
+                    index += direction;
             }
             else
             {
-                while (CHECK && !utils::str::is_word_bound(idx - OFFSET))
-                    idx += dir;
+                while (CHECK && !utils::str::is_word_bound(index - OFFSET))
+                    index += direction;
             }
 
-            return idx;
+            return index;
         }
+#undef CHECK
     } /* namespace str */
 
 
@@ -169,8 +170,8 @@ namespace utils
         auto
         is_arrow(const std::string &seq) -> bool
         {
-            const char back { seq.back() };
-            return back >= 'A' && back <= 'D';
+            const char BACK { seq.back() };
+            return BACK >= 'A' && BACK <= 'D';
         }
 
 
@@ -186,11 +187,11 @@ namespace utils
         auto
         is_home_end(const std::string &seq) -> int
         {
-            const char back { seq.back() };
+            const char BACK { seq.back() };
 
-            if (back == 'H') return -1;
-            if (back == 'F') return 1;
-            if (back == '~')
+            if (BACK == 'H') return -1;
+            if (BACK == 'F') return 1;
+            if (BACK == '~')
             {
                 if (seq[1] == '1') return -1;
                 if (seq[1] == '4') return 1;

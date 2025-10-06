@@ -15,17 +15,19 @@ using input::term::Handler;
 namespace
 {
     /**
-     * @return `std::nullopt` on EOT, or a valid `std::string`
-     *          containing the ANSI sequence.
+     * @brief reads an ANSI escape sequence from stream buffer @p sbuf
+     *
+     * @return ANSI sequence (e.g., "[31m"), or an empty string on EOT/EOF
      */
     [[nodiscard]]
     auto
-    get_ansi_sequence(std::streambuf *sbuf) -> std::optional<std::string>
+    get_ansi_sequence(std::streambuf *sbuf) -> std::string
     {
         std::array<char, 8> buff;
         for (size_t i { 0 }; i < buff.size(); i++)
         {
-            if (sbuf->sgetc() == EOT) return std::nullopt;
+            int c { sbuf->sgetc() };
+            if (c == EOT || c == EOF) return "";
 
             buff[i] = static_cast<char>(sbuf->sbumpc());
             if ((buff[i] >= 'A' && buff[i] <= 'Z') || buff[i] == '~')
@@ -261,67 +263,65 @@ Handler::handle_backspace(std::string &str, bool ctrl)
 auto
 Handler::handle_ansi(std::string &str, std::streambuf *sbuf) -> bool
 {
-    auto seq_buff { get_ansi_sequence(sbuf) };
-    if (!seq_buff) return false;
+    std::string seq { get_ansi_sequence(sbuf) };
+    if (seq.empty()) return false;
 
-    const std::string &seq { *seq_buff };
+    const bool CTRL { utils::ansi::is_ctrl_pressed(seq) };
 
-    const bool ctrl { utils::ansi::is_ctrl_pressed(seq) };
-    const char back { seq.back() };
-
-    if (back >= Cursor::DIR_UP && back <= Cursor::DIR_LEFT)
+    if (utils::ansi::is_arrow(seq))
     {
-        const auto dir { Cursor::Direction(seq.back()) };
-        return m_pos.handle_arrows(dir, str, ctrl) || handle_history(dir, str);
+        const auto DIRECTION { Cursor::Direction(seq.back()) };
+        return m_pos.handle_arrows(DIRECTION, str, CTRL)
+            || handle_history(DIRECTION, str);
     }
 
     if (int home_end { utils::ansi::is_home_end(seq) }; home_end != 0)
     {
-        return m_pos.handle_home_end(home_end, str, ctrl);
+        return m_pos.handle_home_end(home_end, str, CTRL);
     }
     return true;
 }
 
 
 auto
-Handler::handle_history(Cursor::Direction dir, std::string &current) -> bool
+Handler::handle_history(Cursor::Direction direction, std::string &current_text)
+    -> bool
 {
-    if (m_current_text.empty()) m_current_text = current;
+    if (direction != Cursor::DIR_DOWN && direction != Cursor::DIR_UP)
+        return false;
+    if (m_current_text.empty()) m_current_text = current_text;
 
-    std::string before { current };
-    if (dir == Cursor::DIR_DOWN)
+    std::string before { current_text };
+    if (direction == Cursor::DIR_DOWN)
     {
         auto text { m_history->get_next() };
         if (!text)
         {
-            current = m_current_text;
+            current_text = m_current_text;
             m_current_text.clear();
             return true;
         }
-        current = *text;
+        current_text = *text;
     }
 
-    if (dir == Cursor::DIR_UP)
+    if (direction == Cursor::DIR_UP)
     {
         auto text { m_history->get_prev() };
         if (!text) return true;
-        current = *text;
+        current_text = *text;
     }
 
-    if (dir == Cursor::DIR_DOWN || dir == Cursor::DIR_UP)
-    {
-        io::print("\r\033[K");
+    io::print("\r\033[K");
 
-        show_prompt();
-        io::print("{}", current);
+    show_prompt();
+    io::print("{}", current_text);
 
-        int64_t len { static_cast<int64_t>(before.length())
-                      - static_cast<int64_t>(current.length()) };
-        if (len > 0) io::print("{}", std::string(len, ' '));
+    int64_t len { static_cast<int64_t>(before.length())
+                  - static_cast<int64_t>(current_text.length()) };
+    if (len > 0) io::print("{}", std::string(len, ' '));
 
-        m_pos.x = utf8::distance(current.begin(), current.end());
-        m_pos.y = 0;
-    }
+    m_pos.x = utf8::distance(current_text.begin(), current_text.end());
+    m_pos.y = 0;
 
     return true;
 }

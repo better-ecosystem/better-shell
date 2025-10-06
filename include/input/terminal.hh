@@ -33,9 +33,6 @@ namespace input::term
                     std::streambuf      *sbuf) -> ReturnType;
 
 
-        /**
-        * @brief Resets the cursor position.
-        */
         void reset();
 
 
@@ -46,6 +43,8 @@ namespace input::term
         auto is_active() const -> bool;
 
     private:
+        static Handler *m_handler_instance;
+
         std::unique_ptr<history::Handler> m_history;
         std::string                       m_current_text;
 
@@ -61,18 +60,23 @@ namespace input::term
 
 
         void insert_char_to_cursor(std::string &str, unsigned char c);
+
+
         void insert_u8_to_cursor(std::string &str);
 
 
         void handle_backspace(std::string &str, bool ctrl);
+
+
         void handle_delete(std::string &str, bool ctrl);
+
 
         auto handle_ansi(std::string &str, std::streambuf *sbuf) -> bool;
 
-        auto handle_history(Cursor::Direction dir, std::string &current)
-            -> bool;
 
-        static Handler *m_handler_instance;
-        static void     sigint_handler(int sig);
+        auto handle_history(Cursor::Direction direction,
+                            std::string      &current_text) -> bool;
+
+        static void sigint_handler(int sig);
     };
 }

@@ -7,7 +7,7 @@ namespace input::term
 {
     struct Cursor
     {
-        enum Direction : uint8_t
+        enum Direction : char
         {
             DIR_UP    = 'A',
             DIR_DOWN  = 'B',
@@ -59,7 +59,7 @@ namespace input::term
 
     private:
         [[nodiscard]]
-        auto handle_up_arrow() -> bool;
+        auto handle_up_arrow(const std::string &str) -> bool;
 
 
         [[nodiscard]]

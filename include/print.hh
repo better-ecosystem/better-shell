@@ -38,8 +38,7 @@ namespace io
             std::format_string<T_Args...> fmt,
             T_Args &&...args)
     {
-        print(stream, "{}\n",
-              std::format(fmt, std::forward<T_Args>(args)...));
+        print(stream, "{}\n", std::format(fmt, std::forward<T_Args>(args)...));
     }
 
 

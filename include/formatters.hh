@@ -58,6 +58,12 @@ template <> struct std::formatter<parser::Token> : std::formatter<std::string>
             {
                 using T = std::decay_t<decltype(val)>;
 
+                if constexpr (std::is_same_v<T, std::string>)
+                {
+                    out += std::format("\"{}\"", val);
+                    return;
+                }
+
                 if constexpr (std::is_same_v<T, std::vector<parser::Token>>)
                 {
                     std::vector<parser::Token> tokens { val };
@@ -75,8 +81,6 @@ template <> struct std::formatter<parser::Token> : std::formatter<std::string>
                     str += " ";
                     out += str;
                 }
-                else if constexpr (std::is_same_v<T, std::string>)
-                    out += std::format("\"{}\"", val);
             },
             tok.data);
 

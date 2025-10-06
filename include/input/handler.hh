@@ -23,23 +23,20 @@ namespace input
 
     public:
         /**
-         * @param stream The stream the handler will read into.
-         * @warning deleting @p stream while this class is still active
-         *          is undefined behaviour.
+         * handle shell input from @p stream
+         * the class does not own the stream
          */
         Handler(std::istream *stream);
 
 
         /**
-         * @brief Reads shell input from stream passed to the ctor.
-         *
-         * @return The size of @p str
+         * reads a character and returns the size of the string
          */
         auto read(std::string &str) -> size_t;
 
 
         /**
-         * @return true if the shell is supposed to exit, false otherwise.
+         * checks whether the shell is supposed to exit or not
          */
         [[nodiscard]]
         auto should_exit() const -> bool;
@@ -53,7 +50,7 @@ namespace input
 
 
         /**
-         * @brief Exits the shell.
+         * force exit the shell with code @p code (can be EOF or EOT)
          */
         void exit(char code);
     };

@@ -1,3 +1,4 @@
+#include <fstream>
 #include <format>
 
 #include "history/history.hh"
@@ -52,6 +53,7 @@ Handler::push_back(const std::string &text)
     std::ofstream file { m_history_file, std::ios_base::app };
     if (file.is_open())
     {
+        /* std::endl puts a newline and flush. */
         file << text << std::endl; //NOLINT
     }
     file.close();

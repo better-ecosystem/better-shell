@@ -9,26 +9,46 @@ namespace utils
 {
     namespace utf8
     {
+        /**
+         * checks if @p str contains any non-ASCII characters
+         */
         [[nodiscard]]
         auto contains_unicode(std::string_view str) -> bool;
 
 
+        /**
+         * checks if a byte @p byte is the leading byte of
+         * a UTF-8 multi-byte sequence
+         */
         [[nodiscard]]
         auto is_leading_byte(const unsigned char &byte) -> bool;
 
 
+        /**
+         * checks if a byte @p byte is a UTF-8 continuation byte
+         */
         [[nodiscard]]
         auto is_continuation_byte(const unsigned char &byte) -> bool;
 
 
+        /**
+         * checks if a byte @p byte is an ASCII byte
+         */
         [[nodiscard]]
         auto is_ascii_byte(const unsigned char &byte) -> bool;
 
 
+        /**
+         * gets the expected length of a UTF-8 multi-byte sequence based on the
+         * leading byte
+         */
         [[nodiscard]]
         auto get_expected_length(const unsigned char &leading) -> size_t;
 
 
+        /**
+         * this function is an std::string::length() wrapper that is UTF-8 aware
+         */
         [[nodiscard]]
         auto length(const std::string &str) -> size_t;
     }
@@ -37,66 +57,96 @@ namespace utils
     namespace str
     {
         /**
-         * @brief Gets the @p idx 's line from @p str .
+         * returns the line at index @p idx from @p str
+         * --------------------------------------------
          *
-         * @throw This function might throw `std::out_of_range` if @p idx
-         *        is bigger than the amount of lines in @p str .
+         * this function may throw an std::out_of_range if @p idx exceeds
+         * the number of lines inside @p str
          */
         [[nodiscard]]
         auto get_line(const std::string &str, size_t idx) -> std::string;
 
 
+        /**
+         * checks if @p ch is a word bound
+         */
         [[nodiscard]]
         auto is_word_bound(const unsigned char &ch) -> bool;
 
 
         /**
-         * Moves @p idx to @p dir direction a word,
-         * and returns the current index.
+         * moves @p idx one word to @p direction
+         * -------------------------------------
          *
-         * @p dir can be -1 for left, and 1 for right
+         * @p direction can be -1 for left, or 1 for right
          */
         [[nodiscard]]
-        auto move_idx_to_direction(const std::string &str, size_t idx, int dir)
-            -> size_t;
+        auto move_idx_to_direction(const std::string &str,
+                                   size_t             index,
+                                   int                direction) -> size_t;
     }
 
 
+    /**
+     * ANSI sequence utility namespace
+     * -------------------------------
+     *
+     * all functions in this namespace that request a @p seq
+     * should be given the sequence starting from the open
+     * square bracket '['. (e.g., "[A", "[1;5~")
+     */
     namespace ansi
     {
+        /**
+         * checks whether @p seq represents an arrow key
+         */
         [[nodiscard]]
         auto is_arrow(const std::string &seq) -> bool;
 
 
+        /**
+         * checks if Ctrl was held during a sequence @p seq
+         */
         [[nodiscard]]
         auto is_ctrl_pressed(const std::string &seq) -> bool;
 
 
-        /* returns -1 for home, 1 for end, 0 for not */
+        /**
+         * determines if @p seq is a Home or End key
+         * -----------------------------------------
+         *
+         * the function will return
+         *
+         *  -1 if @p seq is a Home key
+         *
+         *   1 if @p seq is an End key
+         *
+         *   0 if @p seq is neither
+         */
         [[nodiscard]]
         auto is_home_end(const std::string &seq) -> int;
     }
 
 
     /**
-     * @brief Wrapper for `std::getenv`
+     * fetch an environment variable @p env , returns a string of the value
+     * or an empty string if the variable does not exist
      */
     [[nodiscard]]
     auto getenv(const std::string &env) -> std::string;
 
 
     /**
-     * @brief Wrapper for the `std::getenv`
-     *
-     * when the returned value is nullptr, the function will return
-     * @p val instead.
+     * fetch an environment variable @p env , returns a string of the value
+     * or @p val if the variable does not exist
      */
     [[nodiscard]]
     auto getenv(const std::string &env, const std::string &val) -> std::string;
 
 
     /**
-     * @brief Creates a range from @p start , to @p end .
+     * creates a lazy integer range from
+     * @p start (inclusive) to @p end (exclusive)
      */
     template <typename Tp>
     [[nodiscard]]
@@ -107,6 +157,9 @@ namespace utils
     }
 
 
+    /**
+     * repeats block code @p n times
+     */
 #define RUN_FUNC_N(n) \
     for (auto _ : utils::range(static_cast<decltype(n)>(0), n))
 }

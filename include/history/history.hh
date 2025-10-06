@@ -1,9 +1,7 @@
 #pragma once
 #include <filesystem>
-#include <fstream>
 #include <optional>
-
-#include "parser/tokenizer.hh"
+#include <vector>
 
 
 namespace history
@@ -12,42 +10,49 @@ namespace history
     {
     public:
         /**
-         * If history_file is empty, the _ctor_ will use
-         * $XDG_HOME_CACHE/better/better-shell or
-         * $HOME/.cache/better/better-shell as the history file.
+         * creates a history handler with the history list file pointing at
+         * @p history_file
+         * ----------------------------------------------------------------
+         *
+         * if @p history_file is empty, the constructor will use the default
+         * path given by history::Handler::get_default_history_path()
          */
         Handler(const std::filesystem::path &history_file);
 
 
+        /**
+         * adds @p text to the end to the history list
+         */
         void push_back(const std::string &text);
 
 
         /**
-         * @brief Get the next text in the history list.
+         * get the next text in the history list and increment the line index
+         * -------------------------------------
          *
-         * Will increment the internal "current-text" index, which
-         * starts at the amount of lines in the history file,
-         * which means it will point to the last inserted text.
-         * When the index reaches the maximum size, and _get_next_ is called
-         * again, _get_next_ will return an std::nullopt.
+         * the function will return an std::nullopt if the internal
+         * line index points at the end of the list
          */
         [[nodiscard]]
         auto get_next() -> std::optional<std::string>;
 
 
         /**
-         * @brief Get the next token in the history list.
+         * get the previous text in the history list
+         * and decrement the line index
+         * -----------------------------------------
          *
-         * Will decrement the internal "current-token" index, which starts
-         * at the amount of the lines in the history file,
-         * which means it will point to the last inserted token.
-         * When the index reaches 0, and _get_prev_ is called again,
-         * _get_prev_ will return an std::nullopt.
+         * the function will never return std::nullopt
+         * instead, the function will always return the line pointed
+         * by the index even though it cannot decrement the index anymore
          */
         [[nodiscard]]
         auto get_prev() -> std::optional<std::string>;
 
 
+        /**
+         * resets the index, i.e., makes it point to the last text in the list
+         */
         void reset();
 
     private:
