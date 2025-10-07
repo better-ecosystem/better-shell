@@ -8,6 +8,45 @@ namespace parser
 {
     namespace
     {
+        /**
+         * find the last close bracket
+         * ---------------------------
+         *
+         * returns std::string::npos on "unmatched closing bracket",
+         * or returns the length of @p text if no closing bracket is found
+         */
+        [[nodiscard]]
+        auto
+        find_last_close_bracket(const std::string &text, size_t start) -> size_t
+        {
+            size_t bracket_nest { 1 };
+            bool   in_single_quote { false };
+            bool   in_double_quote { false };
+
+            for (size_t i { start }; i < text.size(); i++)
+            {
+                char c { text[i] };
+
+                if (c == '\'' && !in_double_quote)
+                    in_single_quote = !in_single_quote;
+                else if (c == '"' && !in_single_quote)
+                    in_double_quote = !in_double_quote;
+
+                if (in_single_quote || in_double_quote) continue;
+
+                if (c == BracketKind::OPEN)
+                    bracket_nest++;
+                else if (c == BracketKind::CLOSE)
+                {
+                    bracket_nest--;
+                    if (bracket_nest == 0) return i;
+                }
+            }
+
+            return std::string::npos;
+        }
+
+
         [[nodiscard]]
         auto
         get_command(const std::string &str) -> std::string
@@ -20,9 +59,9 @@ namespace parser
 
 
         void
-        handle_argument(std::vector<Token> &tokens,
-                        size_t             &i,
-                        const std::string  &text)
+        handle_argument(const shared_tokens &tokens,
+                        size_t              &i,
+                        const std::string   &text)
         {
             const size_t LEN { text.length() };
 
@@ -41,9 +80,8 @@ namespace parser
                 if (i >= LEN)
                     throw std::invalid_argument("Unterminated quoted argument");
 
-                std::string arg { text.substr(start, i - start) };
-                tokens.emplace_back(TokenType::ARGUMENT, start, std::move(arg),
-                                    std::nullopt);
+                tokens->tokens.emplace_back(TokenType::ARGUMENT, start,
+                                            text.substr(start, i - start));
                 i++;
                 return;
             }
@@ -52,73 +90,68 @@ namespace parser
             while (i < LEN && std::isspace(text[i]) == 0 && text[i] != '$') ++i;
 
             if (start < i)
-            {
-                std::string arg { text.substr(start, i - start) };
-                tokens.emplace_back(parser::TokenType::ARGUMENT, start,
-                                    std::move(arg), std::nullopt);
-            }
-        }
-
-
-        /**
-         * find the last close bracket
-         * ---------------------------
-         *
-         * returns std::string::npos on "unmatched closing bracket",
-         * or returns the length of @p text if no closing bracket is found
-         */
-        [[nodiscard]]
-        auto
-        find_last_close_bracket(const std::string &text, size_t start) -> size_t
-        {
-            size_t bracket_nest { 1 };
-
-            for (size_t i = start; i < text.size(); ++i)
-            {
-                if (text[i] == BracketKind::OPEN)
-                    bracket_nest++;
-                else if (text[i] == BracketKind::CLOSE)
-                    bracket_nest--;
-                if (bracket_nest == 0) return i;
-            }
-
-            return text.length();
+                tokens->tokens.emplace_back(TokenType::ARGUMENT, start,
+                                            text.substr(start, i - start));
         }
 
 
         [[nodiscard]]
         auto
-        handle_substitution(std::vector<Token> &tokens,
-                            size_t             &i,
-                            const std::string  &text) -> bool
+        handle_substitution(const shared_tokens &tokens,
+                            size_t              &i,
+                            const std::string   &text) -> bool
         {
             if (text[i] != '$' || i + 1 >= text.size() || text[i + 1] != '{')
                 return false;
 
-            tokens.emplace_back(TokenType::SUB_BRACKET, i, "${",
-                                BracketKind::OPEN);
-            i += 2;
+            const size_t start_pos { i };
+            i += 2; /* skip ${ */
 
-            const size_t END_IDX { find_last_close_bracket(text, i) };
-            std::string  inner { text.substr(i, END_IDX - i) };
+            tokens->tokens.emplace_back(TokenType::SUB_BRACKET, start_pos, "${",
+                                        BracketKind::OPEN);
 
-            inner = utils::str::trim(inner);
-            TokenGroup inner_tokens { parser::parse(inner) };
+            size_t end_idx { find_last_close_bracket(text, i) };
+            if (end_idx == std::string::npos)
+            {
+                std::string inner { utils::str::trim(text.substr(i)) };
+                if (!inner.empty())
+                {
+                    shared_tokens inner_tokens { parser::parse(inner, tokens) };
 
-            tokens.emplace_back(TokenType::SUB_CONTENT, i,
-                                std::move(inner_tokens), std::nullopt);
-            i = END_IDX - 1;
+                    tokens->tokens.emplace_back(TokenType::SUB_CONTENT, i,
+                                                inner_tokens);
+                }
+
+                i = text.length();
+                return true;
+            }
+
+            std::string inner { utils::str::trim(text.substr(i, end_idx - i)) };
+            if (!inner.empty())
+            {
+                shared_tokens inner_tokens { parser::parse(inner, tokens) };
+
+                tokens->tokens.emplace_back(TokenType::SUB_CONTENT, i,
+                                            inner_tokens);
+            }
+
+
+            tokens->tokens.emplace_back(TokenType::SUB_BRACKET, end_idx, "}",
+                                        BracketKind::CLOSE);
+
+            i = end_idx;
             return true;
         }
 
 
         [[nodiscard]]
         auto
-        handle_flag(std::vector<Token> &tokens,
-                    size_t             &i,
-                    const std::string  &text) -> bool
+        handle_flag(const shared_tokens &tokens,
+                    size_t              &i,
+                    const std::string   &text) -> bool
         {
-            if (text[i] != '-' || std::isspace(text[i - 1]) == 0) return false;
+            if (i > 0 && (text[i] != '-' || std::isspace(text[i - 1]) == 0))
+                return false;
 
             const size_t LEN { text.length() };
 
@@ -127,8 +160,8 @@ namespace parser
             {
                 size_t len { 2 };
                 while (i + len < LEN && std::isspace(text[i + len]) == 0) len++;
-                tokens.emplace_back(TokenType::FLAG, i, text.substr(i, len),
-                                    FlagKind::LONG);
+                tokens->tokens.emplace_back(
+                    TokenType::FLAG, i, text.substr(i, len), FlagKind::LONG);
                 i += len - 1;
                 return true;
             }
@@ -138,8 +171,8 @@ namespace parser
             while (i + len < LEN && std::isspace(text[i + len]) == 0
                    && text[i + len] != '=')
             {
-                tokens.emplace_back(TokenType::FLAG, i, "-"s + text[i + len],
-                                    FlagKind::SHORT);
+                tokens->tokens.emplace_back(
+                    TokenType::FLAG, i, "-"s + text[i + len], FlagKind::SHORT);
                 len++;
             }
 
@@ -150,12 +183,13 @@ namespace parser
 
 
     auto
-    parse(const std::string &text) -> TokenGroup
+    parse(const std::string &text, const shared_tokens &parent) -> shared_tokens
     {
-        std::vector<Token> tokens;
-        tokens.emplace_back(TokenType::COMMAND, 0, get_command(text),
-                            std::nullopt);
-        size_t i { tokens.back().get_data<std::string>().length() };
+        auto tokens { std::make_shared<TokenGroup>(text, parent) };
+
+        if (std::string cmd { get_command(text) }; !cmd.empty())
+            tokens->tokens.emplace_back(TokenType::COMMAND, 0, cmd);
+        size_t i { tokens->tokens.back().get_data<std::string>()->length() };
 
         handle_argument(tokens, i, text);
 
@@ -165,15 +199,8 @@ namespace parser
 
             if (handle_substitution(tokens, i, text)) continue;
             if (handle_flag(tokens, i, text)) continue;
-
-            if (text[i] == '}')
-            {
-                tokens.emplace_back(TokenType::SUB_BRACKET, i, "}",
-                                    BracketKind::CLOSE);
-                continue;
-            }
         }
 
-        return { .tokens = std::move(tokens), .raw = utils::str::trim(text) };
+        return tokens;
     }
 }

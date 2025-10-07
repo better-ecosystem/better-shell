@@ -149,9 +149,9 @@ namespace utils
 
 #else
 
-#define COLOR_RESET
-#define ANSI_RGB_FG(r, g, b)
-#define ANSI_RGB_BG(r, g, b)
+#define COLOR_RESET ""
+#define ANSI_RGB_FG(r, g, b) ""
+#define ANSI_RGB_BG(r, g, b) ""
 
 #endif
     }
@@ -192,6 +192,9 @@ namespace utils
 #define RUN_FUNC_N(n, func, ...)                                    \
     for (auto _ : utils::range(static_cast<decltype((n))>(0), (n))) \
         func(__VA_ARGS__);
+
+#define MAXB(a, b) std::max<decltype(b)>(a, b)
+#define MAXA(a, b) std::max<decltype(a)>(a, b)
 }
 
 

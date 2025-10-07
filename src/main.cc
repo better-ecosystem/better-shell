@@ -23,6 +23,8 @@ main(int /* argc */, char ** /* argv */) -> int
     input::Handler input { &std::cin };
     std::string    str;
 
+    std::shared_ptr<parser::TokenGroup> tokens;
+
     while (!input.should_exit())
     {
         size_t len { input.read(str) };
@@ -30,12 +32,10 @@ main(int /* argc */, char ** /* argv */) -> int
         if (input.should_exit()) break;
         if (len == 0) continue;
 
-        parser::TokenGroup tokens { parser::parse(str) };
+        tokens = parser::parse(str);
 
-        auto err { tokens.verify_syntax() };
-        if (!err)
-            io::println("{}", tokens.to_json().toStyledString());
-        else
+        io::println("{}", Json::to_string(tokens->to_json()));
+        if (auto err { tokens->verify_syntax() }; err)
             io::println("{}", err->get_message());
     }
 

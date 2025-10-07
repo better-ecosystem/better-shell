@@ -152,45 +152,45 @@ namespace utils
         }
 
 
-#define CHECK direction < 0 ? index > 0 : index < LEN
         auto
         move_idx_to_direction(const std::string &str,
                               size_t             index,
                               int                direction) -> size_t
         {
-            const int    OFFSET { direction < 0 ? 1 : 0 };
             const size_t LEN { str.length() };
 
-            if (CHECK && utils::str::is_word_bound(index - OFFSET))
+            if (direction == -1 && index > 0)
             {
-                index += direction;
-                while (CHECK && utils::str::is_word_bound(index - OFFSET))
-                    index += direction;
+                bool is_bound { utils::str::is_word_bound(str[index - 1]) };
+
+                while (index > 0
+                       && utils::str::is_word_bound(str[index - 1]) == is_bound)
+                {
+                    index--;
+                }
             }
-            else
+            else if (direction == 1 && index < LEN)
             {
-                while (CHECK && !utils::str::is_word_bound(index - OFFSET))
-                    index += direction;
+                bool is_bound { utils::str::is_word_bound(str[index]) };
+                while (index < LEN
+                       && utils::str::is_word_bound(str[index]) == is_bound)
+                {
+                    index++;
+                }
             }
 
             return index;
         }
-#undef CHECK
 
 
         auto
         trim(const std::string &str) -> std::string
         {
-            std::stringstream iss { str };
-            std::string       result;
+            const auto begin { str.find_first_not_of(" \t\n\r\f\v") };
+            if (begin == std::string::npos) return "";
 
-            for (std::string word; iss >> word;)
-            {
-                if (!result.empty()) { result += ' '; }
-                result += word;
-            }
-
-            return result;
+            const auto end { str.find_last_not_of(" \t\n\r\f\v") };
+            return str.substr(begin, end - begin + 1);
         }
     } /* namespace str */
 
@@ -210,7 +210,7 @@ namespace utils
         {
             size_t idx { seq.find_first_of(';') };
             if (idx == std::string::npos) return false;
-            return seq.at(idx + 1) == 5;
+            return seq.at(idx + 1) == '5';
         }
 
 
@@ -255,7 +255,8 @@ namespace Json
     to_string(const Json::Value &val) -> std::string
     {
         StreamWriterBuilder builder;
-        builder["indentation"] = "";
+        builder["indentation"]             = "    ";
+        builder["enableYAMLCompatibility"] = true;
         return writeString(builder, val);
     }
 

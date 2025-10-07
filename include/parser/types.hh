@@ -88,7 +88,7 @@ namespace parser
     class BracketKind
     {
     public:
-        static constexpr char OPEN  { '{' };
+        static constexpr char OPEN { '{' };
         static constexpr char CLOSE { '}' };
     };
 
@@ -96,7 +96,7 @@ namespace parser
     {
     public:
         static constexpr char SHORT { '-' };
-        static constexpr char LONG  { '=' };
+        static constexpr char LONG { '=' };
     };
 
 
@@ -107,10 +107,19 @@ namespace parser
     /**
      * a container for @e Token
      */
-    struct TokenGroup
+    struct TokenGroup : std::enable_shared_from_this<TokenGroup>
     {
         std::vector<Token> tokens;
         std::string        raw;
+
+
+        /**
+         * used to resolve errors
+         */
+        std::weak_ptr<TokenGroup> parent;
+
+
+        TokenGroup(std::string raw, const std::shared_ptr<TokenGroup> &parent);
 
 
         /**
@@ -132,15 +141,28 @@ namespace parser
          * get the collected "syntax-highlighted" version of each token
          */
         [[nodiscard]]
-        auto get_highlighted() -> std::string;
+        auto get_highlighted() const -> std::string;
+
+
+        /**
+         * get the top-most parent of this token group
+         */
+        [[nodiscard]]
+        auto get_toplevel() const -> const TokenGroup *;
 
 
         /**
          * transform the tokens into a json object
          */
         [[nodiscard]]
-        auto to_json() const -> Json::Value;
+        auto to_json() -> Json::Value;
+
+
+        [[nodiscard]]
+        auto operator->() -> std::vector<Token> *;
     };
+
+    using shared_tokens = std::shared_ptr<TokenGroup>;
 
 
     struct Token
@@ -162,7 +184,7 @@ namespace parser
          * ''', '"', or '`' on @e type STRING_QUOTE,
          * or just a raw text on other types.
          */
-        std::variant<std::string, TokenGroup> data;
+        std::variant<std::string, shared_tokens> data;
 
 
         /**
@@ -178,6 +200,11 @@ namespace parser
         std::optional<char> attribute;
 
 
+        Token(TokenType type, size_t idx, std::string data);
+        Token(TokenType type, size_t idx, const shared_tokens &data);
+        Token(TokenType type, size_t idx, std::string data, char attr);
+
+
         /**
          * get the "syntax-highlighted" version of @e text
          * -----------------------------------------------
@@ -186,7 +213,7 @@ namespace parser
          * that the substitution contains when @e type is SUB_CONTENT
          */
         [[nodiscard]]
-        auto get_highlighted() -> std::string;
+        auto get_highlighted() const -> std::string;
 
 
         /**
@@ -195,12 +222,9 @@ namespace parser
         template <typename Tp>
         [[nodiscard]]
         auto
-        get_data() const -> Tp
+        get_data() const -> const Tp *
         {
-            return *std::get_if<Tp>(&this->data);
+            return std::get_if<Tp>(&this->data);
         }
-
-
-        ~Token();
     };
 }

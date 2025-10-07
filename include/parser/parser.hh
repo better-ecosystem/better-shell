@@ -5,5 +5,6 @@
 namespace parser
 {
     [[nodiscard]]
-    auto parse(const std::string &text) -> TokenGroup;
+    auto parse(const std::string &text, const shared_tokens &parent = nullptr)
+        -> shared_tokens;
 }

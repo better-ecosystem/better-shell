@@ -1,4 +1,5 @@
 #include <stack>
+#include <utility>
 
 #include "command/built_in.hh"
 #include "command/runner.hh"
@@ -23,13 +24,13 @@ namespace parser
                                "the first token is not a command", 0 };
             }
 
-            const std::string TEXT { front.get_data<std::string>() };
+            const std::string *TEXT { front.get_data<std::string>() };
 
-            if (!cmd::BINARY_PATH_LIST.contains(TEXT)
-                && !cmd::built_in::COMMANDS.contains(TEXT))
+            if (!cmd::BINARY_PATH_LIST.contains(*TEXT)
+                && !cmd::built_in::COMMANDS.contains(*TEXT))
             {
                 return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                               "command {} doesn't exist", 0, TEXT };
+                               "command '{}' doesn't exist", 0, *TEXT };
             }
 
             return std::nullopt;
@@ -54,7 +55,7 @@ namespace parser
 
         auto
         check_string_quote_token(
-            const TokenGroup                    &tokens,
+            TokenGroup                          &tokens,
             std::stack<std::pair<char, size_t>> &quote_stack,
             size_t                               idx) -> std::optional<Error>
         {
@@ -82,7 +83,7 @@ namespace parser
 
 
         auto
-        check_substitution_bracket_token(const TokenGroup   &tokens,
+        check_substitution_bracket_token(TokenGroup         &tokens,
                                          std::stack<size_t> &bracket_stack,
                                          size_t idx) -> std::optional<Error>
         {
@@ -99,7 +100,17 @@ namespace parser
                                    idx, *token.attribute };
 
                 if (*token.attribute == BracketKind::OPEN)
+                {
                     bracket_stack.push(idx);
+
+                    if (idx + 1 < tokens->size()
+                        && tokens.tokens[idx].type != TokenType::SUB_CONTENT)
+                    {
+                        return Error { tokens,
+                                       ErrorType::PARSER_EMPTY_SUBSTITUTION,
+                                       "substitution has no content", idx };
+                    }
+                }
                 else if (*token.attribute == BracketKind::CLOSE)
                 {
                     if (!bracket_stack.empty())
@@ -134,9 +145,10 @@ namespace parser
         {
             if (this->tokens[i].type == SUB_CONTENT)
             {
-                auto res {
-                    this->tokens[i].get_data<TokenGroup>().verify_syntax()
-                };
+                auto res { this->tokens[i]
+                               .get_data<shared_tokens>()
+                               ->get()
+                               ->verify_syntax() };
                 if (res) return res;
             }
 
@@ -160,12 +172,12 @@ namespace parser
 
 
     auto
-    TokenGroup::get_highlighted() -> std::string
+    TokenGroup::get_highlighted() const -> std::string
     {
         std::string result;
         bool        first { true };
 
-        for (auto &token : this->tokens)
+        for (const auto &token : this->tokens)
         {
             if (!first) result += " ";
 
@@ -178,23 +190,28 @@ namespace parser
 
 
     auto
-    TokenGroup::to_json() const -> Json::Value
+    TokenGroup::to_json() -> Json::Value
     {
         Json::Value root { Json::objectValue };
 
         root["raw"]    = this->raw;
         root["tokens"] = Json::arrayValue;
 
-        for (const auto &token : this->tokens)
+        for (auto &token : this->tokens)
         {
             Json::Value j_token { Json::objectValue };
             j_token["type"] = Json::String { TokenType_to_string(token.type) };
 
-            j_token["data"] = token.type == TokenType::SUB_CONTENT
-                                ? token.get_data<TokenGroup>().to_json()
-                                : token.get_data<std::string>();
-            j_token["attribute"]
-                = token.attribute ? *token.attribute : Json::nullValue;
+            j_token["data"]
+                = token.type == TokenType::SUB_CONTENT
+                    ? token.get_data<shared_tokens>()->get()->to_json()
+                    : *token.get_data<std::string>();
+            j_token["index"] = token.index;
+
+            if (token.attribute)
+                j_token["attribute"] = Json::String { *token.attribute };
+            else
+                j_token["attribute"] = Json::nullValue;
 
             root["tokens"].append(j_token);
         }
@@ -204,11 +221,50 @@ namespace parser
 
 
     auto
-    Token::get_highlighted() -> std::string
+    TokenGroup::get_toplevel() const -> const TokenGroup *
     {
-        return "";
+        const TokenGroup *current { this };
+        while (auto parent_ptr { current->parent.lock() })
+            current = parent_ptr.get();
+
+        return current;
     }
 
 
-    Token::~Token() {}
+    TokenGroup::TokenGroup(std::string raw, const shared_tokens &parent)
+        : tokens({}), raw(std::move(raw)), parent(parent)
+    {
+    }
+
+
+    auto
+    TokenGroup::operator->() -> std::vector<Token> *
+    {
+        return &this->tokens;
+    }
+
+
+    Token::Token(TokenType type, size_t idx, std::string data)
+        : type(type), index(idx), data(std::move(data)), attribute(std::nullopt)
+    {
+    }
+
+
+    Token::Token(TokenType type, size_t idx, const shared_tokens &data)
+        : type(type), index(idx), data(data), attribute(std::nullopt)
+    {
+    }
+
+
+    Token::Token(TokenType type, size_t idx, std::string data, char attr)
+        : type(type), index(idx), data(std::move(data)), attribute(attr)
+    {
+    }
+
+
+    auto
+    Token::get_highlighted() const -> std::string
+    {
+        return "";
+    }
 }
