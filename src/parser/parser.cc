@@ -86,9 +86,14 @@ namespace parser
 
             if (start < i)
             {
-                std::string argument { text.substr(start, i - start) };
+                std::string  raw { text.substr(start, i - start) };
+                const size_t eq_pos { raw.find('=') };
+                auto [argument, param] { utils::str::split(raw, eq_pos) };
 
-                tokens->add_token(TokenType::ARGUMENT, start, argument);
+                tokens->add_token(TokenType::FLAG, start, argument);
+                if (eq_pos != std::string::npos)
+                    tokens->add_token(TokenType::PARAMETER, start + eq_pos,
+                                      param);
             }
         }
 
