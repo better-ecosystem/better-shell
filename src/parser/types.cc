@@ -37,6 +37,7 @@ namespace parser
         }
 
 
+        [[nodiscard]]
         auto
         check_string_quote_token(TokenGroup &tokens,
                                  size_t     &quote_idx,
@@ -64,6 +65,7 @@ namespace parser
         }
 
 
+        [[nodiscard]]
         auto
         check_substitution_bracket_token(TokenGroup         &tokens,
                                          std::stack<size_t> &bracket_stack,
@@ -105,6 +107,23 @@ namespace parser
 
             return std::nullopt;
         }
+
+
+        [[nodiscard]]
+        auto
+        check_parameter_token(TokenGroup &tokens, size_t idx)
+            -> std::optional<Error>
+        {
+            if (tokens.tokens[idx].type != TokenType::PARAMETER)
+                return std::nullopt;
+
+            const auto *text { tokens.tokens[idx].get_data<std::string>() };
+
+            if (!text->empty()) return std::nullopt;
+
+            return Error { tokens, ErrorType::PARSER_EMPTY_PARAM,
+                           "parameter not given", idx };
+        }
     }
 
 
@@ -130,7 +149,10 @@ namespace parser
                 if (res) return res;
             }
 
-            auto res { check_string_quote_token(*this, quote_idx, i) };
+            auto res { check_parameter_token(*this, i) };
+            if (res) return res;
+
+            res = check_string_quote_token(*this, quote_idx, i);
             if (res) return res;
 
             res = check_substitution_bracket_token(*this, bracket_stack, i);

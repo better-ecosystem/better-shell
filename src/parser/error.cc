@@ -4,68 +4,9 @@ using parser::Error;
 
 
 auto
-Error::compute_real_index(const TokenGroup &tokens, size_t base_index) -> size_t
+Error::get_message() const -> std::string
 {
-    size_t            real_index { base_index };
-    const TokenGroup *current { &tokens };
-
-    while (auto parent_ptr { current->parent.lock() })
-    {
-        /* in which index of tokens is the child token placed
-           in the parent tokens list
-        */
-        size_t child_idx { 0 };
-        for (; child_idx < parent_ptr->tokens.size(); child_idx++)
-        {
-            auto t { parent_ptr->tokens[child_idx] };
-            if (t.type == TokenType::SUB_CONTENT)
-            {
-                const auto *sub { t.get_data<shared_tokens>() };
-                if (sub != nullptr && sub->get() == current) break;
-            }
-        }
-
-        /* now we need to add all of the string data's lengths until
-           the child index
-        */
-        for (size_t i { 0 }; i < child_idx; ++i)
-        {
-            Token &t { parent_ptr->tokens[i] };
-            if (t.type == TokenType::SUB_CONTENT)
-                real_index += t.get_data<shared_tokens>()->get()->raw.length();
-            else
-                real_index += t.get_data<std::string>()->length();
-        }
-
-        current = parent_ptr.get();
-        real_index++;
-    }
-
-    return real_index;
-}
-
-
-auto
-Error::extract_error_token_string(const Token &token, size_t token_idx)
-    -> const std::string *
-{
-    try
-    {
-        if (const auto *str_ptr { token.get_data<std::string>() })
-            return str_ptr;
-
-        m_pretty
-            = std::format("error: {} (token {} has no associated string data)",
-                          m_message, token_idx);
-        return nullptr;
-    }
-    catch (const std::bad_variant_access &)
-    {
-        m_pretty
-            = std::format("error: {} (token {} has no associated string data)",
-                          m_message, token_idx);
-        return nullptr;
-    }
+    return m_pretty;
 }
 
 
@@ -115,9 +56,68 @@ Error::format_pretty_message(const std::string        &error_token_text,
 
 
 auto
-Error::get_message() const -> std::string
+Error::extract_error_token_string(const Token &token, size_t token_idx)
+    -> const std::string *
 {
-    return m_pretty;
+    try
+    {
+        if (const auto *str_ptr { token.get_data<std::string>() })
+            return str_ptr;
+
+        m_pretty
+            = std::format("error: {} (token {} has no associated string data)",
+                          m_message, token_idx);
+        return nullptr;
+    }
+    catch (const std::bad_variant_access &)
+    {
+        m_pretty
+            = std::format("error: {} (token {} has no associated string data)",
+                          m_message, token_idx);
+        return nullptr;
+    }
+}
+
+
+auto
+Error::compute_real_index(const TokenGroup &tokens, size_t base_index) -> size_t
+{
+    size_t            real_index { base_index };
+    const TokenGroup *current { &tokens };
+
+    while (auto parent_ptr { current->parent.lock() })
+    {
+        /* in which index of tokens is the child token placed
+           in the parent tokens list
+        */
+        size_t child_idx { 0 };
+        for (; child_idx < parent_ptr->tokens.size(); child_idx++)
+        {
+            auto t { parent_ptr->tokens[child_idx] };
+            if (t.type == TokenType::SUB_CONTENT)
+            {
+                const auto *sub { t.get_data<shared_tokens>() };
+                if (sub != nullptr && sub->get() == current) break;
+            }
+        }
+
+        /* now we need to add all of the string data's lengths until
+           the child index
+        */
+        for (size_t i { 0 }; i < child_idx; ++i)
+        {
+            Token &t { parent_ptr->tokens[i] };
+            if (t.type == TokenType::SUB_CONTENT)
+                real_index += t.get_data<shared_tokens>()->get()->raw.length();
+            else
+                real_index += t.get_data<std::string>()->length();
+        }
+
+        current = parent_ptr.get();
+        real_index++;
+    }
+
+    return real_index;
 }
 
 

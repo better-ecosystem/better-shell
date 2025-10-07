@@ -192,6 +192,18 @@ namespace utils
             const auto end { str.find_last_not_of(" \t\n\r\f\v") };
             return str.substr(begin, end - begin + 1);
         }
+
+
+        auto
+        split(const std::string &str, size_t pos)
+            -> std::pair<std::string, std::string>
+        {
+            if (pos == std::string::npos) return { str, "" };
+
+            std::string first { str.substr(0, pos) };
+            std::string second { str.substr(pos + 1) };
+            return { first, second };
+        }
     } /* namespace str */
 
 

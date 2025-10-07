@@ -38,6 +38,22 @@ namespace parser
         }
 
 
+        /**
+         * determines if a char @p ch belongs to token attribute
+         * -----------------------------------------------------
+         *
+         * for example, the char '{' belongs to TokenType::SUB_QUOTE
+         * so the function will return true
+         */
+        [[nodiscard]]
+        auto
+        char_belongs_to_token(char ch) -> bool
+        {
+            return ch == '-' || ch == '{' || ch == '"' || ch == '!' || ch == '|'
+                || ch == '&' || ch == ';' || ch == ':';
+        }
+
+
         [[nodiscard]]
         auto
         get_command(const std::string &str) -> std::string
@@ -59,14 +75,57 @@ namespace parser
             while (i < LEN && std::isspace(text[i]) != 0) i++;
             if (i >= LEN) return;
 
-            if (text[i] == '-' || text[i] == '{' || text[i] == '"') return;
+            if (char_belongs_to_token(text[i])) return;
 
             size_t start { i };
-            while (i < LEN && std::isspace(text[i]) == 0 && text[i] != '$') ++i;
+            while (i < LEN && std::isspace(text[i]) == 0
+                   && !char_belongs_to_token(text[i]))
+            {
+                i++;
+            }
 
             if (start < i)
-                tokens->add_token(TokenType::ARGUMENT, start,
-                                  text.substr(start, i - start));
+            {
+                std::string argument { text.substr(start, i - start) };
+
+                tokens->add_token(TokenType::ARGUMENT, start, argument);
+            }
+        }
+
+
+        [[nodiscard]]
+        auto
+        handle_string(const shared_tokens &tokens,
+                      size_t              &i,
+                      const std::string   &text) -> bool
+        {
+            if (text[i] != '"') return false;
+
+            tokens->add_token(TokenType::STRING_QUOTE, i, "\"");
+            i++;
+
+            size_t      quote_pos { text.find('"', i) };
+            std::string content;
+
+            if (quote_pos == std::string::npos)
+            {
+                content = text.substr(i);
+                tokens->add_token(TokenType::STRING_CONTENT, i, content);
+                i += content.length();
+                return true;
+            }
+
+            content = text.substr(i, quote_pos - i);
+            if (!content.empty())
+            {
+                tokens->add_token(TokenType::STRING_CONTENT, i, content);
+                i += content.length();
+            }
+
+            tokens->add_token(TokenType::STRING_QUOTE, i, "\"");
+            i++;
+
+            return true;
         }
 
 
@@ -129,8 +188,25 @@ namespace parser
             if (i + 1 < LEN && text[i + 1] == '-')
             {
                 size_t len { 2 };
-                while (i + len < LEN && std::isspace(text[i + len]) == 0) len++;
-                tokens->add_token(TokenType::FLAG, i, text.substr(i, len));
+                bool   after_eq { false };
+
+                while (i + len < LEN && std::isspace(text[i + len]) == 0)
+                {
+                    if (!after_eq && char_belongs_to_token(text[i + len]))
+                        break;
+                    if (text[i + len] == '=') after_eq = true;
+
+                    len++;
+                }
+
+                const std::string raw { text.substr(i, len) };
+                const size_t      eq_pos { raw.find('=') };
+                auto [flag, param] { utils::str::split(raw, eq_pos) };
+
+                tokens->add_token(TokenType::FLAG, i, flag);
+                if (eq_pos != std::string::npos)
+                    tokens->add_token(TokenType::PARAMETER, i + eq_pos, param);
+
                 i += len - 1;
                 return true;
             }
@@ -144,43 +220,23 @@ namespace parser
                 len++;
             }
 
+            if (text[i + len] == '=')
+            {
+                len++; /* for = */
+
+                size_t flag_len { 0 };
+                while (i + len + flag_len < LEN
+                       && std::isspace(text[i + len + flag_len]) == 0)
+                {
+                    flag_len++;
+                }
+
+                std::string flag { text.substr(i + len, flag_len) };
+                tokens->add_token(TokenType::PARAMETER, i + len, flag);
+                i += flag_len;
+            }
+
             i += len;
-            return true;
-        }
-
-
-        [[nodiscard]]
-        auto
-        handle_string(const shared_tokens &tokens,
-                      size_t              &i,
-                      const std::string   &text) -> bool
-        {
-            if (text[i] != '"') return false;
-
-            tokens->add_token(TokenType::STRING_QUOTE, i, "\"");
-            i++;
-
-            size_t      quote_pos { text.find('"', i) };
-            std::string content;
-
-            if (quote_pos == std::string::npos)
-            {
-                content = text.substr(i);
-                tokens->add_token(TokenType::STRING_CONTENT, i, content);
-                i += content.length();
-                return true;
-            }
-
-            content = text.substr(i, quote_pos - i);
-            if (!content.empty())
-            {
-                tokens->add_token(TokenType::STRING_CONTENT, i, content);
-                i += content.length();
-            }
-
-            tokens->add_token(TokenType::STRING_QUOTE, i, "\"");
-            i++;
-
             return true;
         }
     }
@@ -204,6 +260,19 @@ namespace parser
             if (handle_string(tokens, i, text)) continue;
             if (handle_substitution(tokens, i, text)) continue;
             if (handle_flag(tokens, i, text)) continue;
+
+            if (!char_belongs_to_token(text[i]))
+            {
+                size_t end_idx { i + 1 };
+                while (end_idx < text.length()
+                       && std::isspace(text[end_idx]) == 0
+                       && !char_belongs_to_token(end_idx))
+                    end_idx++;
+
+                std::string param { text.substr(i, end_idx - i) };
+                tokens->add_token(TokenType::PARAMETER, i, param);
+                i += param.length();
+            }
         }
 
         return tokens;

@@ -1,11 +1,9 @@
 #pragma once
-#include <algorithm>
 #include <cstdint>
 #include <format>
 #include <string>
 
 #include "parser/types.hh"
-#include "print.hh"
 #include "utils.hh"
 
 
@@ -30,6 +28,7 @@ namespace parser
 
         PARSER_EMPTY_SUBSTITUTION,
         PARSER_EMPTY_STRING,
+        PARSER_EMPTY_PARAM,
     };
 
 
@@ -68,6 +67,9 @@ namespace parser
 
         case ErrorType::PARSER_EMPTY_STRING:
             return "parser::EMPTY_STRING";
+
+        case ErrorType::PARSER_EMPTY_PARAM:
+            return "parser::EMPTY_PARAM";
         }
         // clang-format on
     }
@@ -123,9 +125,9 @@ namespace parser
         std::string m_blue { ANSI_RGB_FG(70, 172, 173) };
 
 
-        [[nodiscard]]
-        static auto compute_real_index(const TokenGroup &tokens,
-                                       size_t            base_index) -> size_t;
+        void format_pretty_message(const std::string &error_token_text,
+                                   const std::string &top_level_raw_string,
+                                   std::pair<size_t, size_t> position);
 
 
         [[nodiscard]]
@@ -133,9 +135,9 @@ namespace parser
             -> const std::string *;
 
 
-        void format_pretty_message(const std::string &error_token_text,
-                                   const std::string &top_level_raw_string,
-                                   std::pair<size_t, size_t> position);
+        [[nodiscard]]
+        static auto compute_real_index(const TokenGroup &tokens,
+                                       size_t            base_index) -> size_t;
 
 
         [[nodiscard]]

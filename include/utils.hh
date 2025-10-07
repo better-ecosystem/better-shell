@@ -98,6 +98,14 @@ namespace utils
          */
         [[nodiscard]]
         auto trim(const std::string &str) -> std::string;
+
+
+        /**
+         * splits a string at @p pos , excluding @p pos
+         */
+        [[nodiscard]]
+        auto split(const std::string &str, size_t pos)
+            -> std::pair<std::string, std::string>;
     }
 
 
