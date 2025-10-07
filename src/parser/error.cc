@@ -12,8 +12,8 @@ Error::compute_real_index(const TokenGroup &tokens, size_t base_index) -> size_t
     while (auto parent_ptr { current->parent.lock() })
     {
         /* in which index of tokens is the child token placed
-                   in the parent tokens list
-                */
+           in the parent tokens list
+        */
         size_t child_idx { 0 };
         for (; child_idx < parent_ptr->tokens.size(); child_idx++)
         {
@@ -26,8 +26,8 @@ Error::compute_real_index(const TokenGroup &tokens, size_t base_index) -> size_t
         }
 
         /* now we need to add all of the string data's lengths until
-                   the child index
-                */
+           the child index
+        */
         for (size_t i { 0 }; i < child_idx; ++i)
         {
             Token &t { parent_ptr->tokens[i] };

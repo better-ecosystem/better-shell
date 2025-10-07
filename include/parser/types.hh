@@ -43,7 +43,7 @@ namespace parser
 
         /**
          * the bracket of the substitution, can either be OPEN or CLOSE,
-         * on OPEN the text shall contain ${,
+         * on OPEN the text shall contain {,
          * and on CLOSE it will only contain }
          */
         SUB_BRACKET,
@@ -56,7 +56,7 @@ namespace parser
         /* STRING TOKEN TYPE */
 
         /**
-         * the quote of the string, can be ", or '
+         * the quote of the string, should be "
          */
         STRING_QUOTE,
 
@@ -64,6 +64,12 @@ namespace parser
          * the content of the string, not including the quotation marks.
          */
         STRING_CONTENT,
+    };
+
+
+    enum class OperatorType : uint8_t
+    {
+        NONE,
     };
 
 
@@ -83,21 +89,6 @@ namespace parser
         case TokenType::STRING_CONTENT: return "Type::STRING_CONTENT";
         };
     }
-
-
-    class BracketKind
-    {
-    public:
-        static constexpr char OPEN { '{' };
-        static constexpr char CLOSE { '}' };
-    };
-
-    class FlagKind
-    {
-    public:
-        static constexpr char SHORT { '-' };
-        static constexpr char LONG { '=' };
-    };
 
 
     struct Token;
@@ -158,8 +149,15 @@ namespace parser
         auto to_json() -> Json::Value;
 
 
-        [[nodiscard]]
-        auto operator->() -> std::vector<Token> *;
+        /**
+         * adds a token to the @e tokens list
+         */
+        template <typename... T_Args>
+        void
+        add_token(T_Args &&...args)
+        {
+            tokens.emplace_back(std::forward<T_Args>(args)...);
+        }
     };
 
     using shared_tokens = std::shared_ptr<TokenGroup>;
@@ -180,29 +178,21 @@ namespace parser
          * contains the raw text of the token or another token group
          * ----------------------------------
          *
-         * the text will be '${' or '}' on @e type SUB_BRACKET,
-         * ''', '"', or '`' on @e type STRING_QUOTE,
+         * the text will be '{' or '}' on @e type SUB_BRACKET,
+         * " on @e type STRING_QUOTE,
          * or just a raw text on other types.
          */
         std::variant<std::string, shared_tokens> data;
 
 
         /**
-         * @e attribute will be
-         * - ( '{'/'}' ) when @e type is SUB_BRACKET
-         * - ( '-'/'=' ) when @e type is FLAG
-         * - ( a quote ) when @e type is STRING_QUOTE
-         * ------------------------------------------
-         *
-         * When @e type is STRING_QUOTE, the char will contain the
-         * type of the quote, which will either be ', ", or `
+         * stores the kind of operator if @e type is OPERATOR
          */
-        std::optional<char> attribute;
+        OperatorType operator_type;
 
 
         Token(TokenType type, size_t idx, std::string data);
         Token(TokenType type, size_t idx, const shared_tokens &data);
-        Token(TokenType type, size_t idx, std::string data, char attr);
 
 
         /**

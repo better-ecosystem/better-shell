@@ -37,46 +37,28 @@ namespace parser
         }
 
 
-        [[nodiscard]]
         auto
-        valid_string_quote(char ch) -> bool
-        {
-            return ch == '\'' || ch == '"' || ch == '`';
-        }
-
-
-        [[nodiscard]]
-        auto
-        valid_substitution_bracket(char ch) -> bool
-        {
-            return ch == '{' || ch == '}';
-        }
-
-
-        auto
-        check_string_quote_token(
-            TokenGroup                          &tokens,
-            std::stack<std::pair<char, size_t>> &quote_stack,
-            size_t                               idx) -> std::optional<Error>
+        check_string_quote_token(TokenGroup &tokens,
+                                 size_t     &quote_idx,
+                                 size_t      idx) -> std::optional<Error>
         {
             const auto &token { tokens.tokens[idx] };
 
             if (token.type == TokenType::STRING_QUOTE)
             {
-                if (!token.attribute || !valid_string_quote(*token.attribute))
-                    return Error {
-                        tokens, ErrorType::PARSER_CORRUPTED_TOKEN_ATTRIBUTE,
-                        "string-quote token has no valid attribute ({})", idx,
-                        *token.attribute
-                    };
-
-                const char quote_char { *token.attribute };
-
-                if (!quote_stack.empty()
-                    && quote_stack.top().first == quote_char)
-                    quote_stack.pop();
+                if (quote_idx != std::string::npos)
+                {
+                    if (quote_idx + 1 < tokens.tokens.size()
+                        && tokens.tokens[quote_idx + 1].type
+                               != TokenType::STRING_CONTENT)
+                    {
+                        return Error { tokens, ErrorType::PARSER_EMPTY_STRING,
+                                       "string is empty", quote_idx };
+                    }
+                    quote_idx = std::string::npos;
+                }
                 else
-                    quote_stack.emplace(quote_char, idx);
+                    quote_idx = idx;
             }
             return std::nullopt;
         }
@@ -91,27 +73,23 @@ namespace parser
 
             if (token.type == TokenType::SUB_BRACKET)
             {
-                if (!token.attribute
-                    || !valid_substitution_bracket(*token.attribute))
-                    return Error { tokens,
-                                   ErrorType::PARSER_CORRUPTED_TOKEN_ATTRIBUTE,
-                                   "substitution-bracket token has no valid "
-                                   "attribute ({})",
-                                   idx, *token.attribute };
+                const std::string *text { token.get_data<std::string>() };
+                const char         bracket { (*text)[0] };
 
-                if (*token.attribute == BracketKind::OPEN)
+                if (bracket == '{')
                 {
                     bracket_stack.push(idx);
 
-                    if (idx + 1 < tokens->size()
-                        && tokens.tokens[idx].type != TokenType::SUB_CONTENT)
+                    if (idx + 1 < tokens.tokens.size()
+                        && tokens.tokens[idx + 1].type
+                               != TokenType::SUB_CONTENT)
                     {
                         return Error { tokens,
                                        ErrorType::PARSER_EMPTY_SUBSTITUTION,
                                        "substitution has no content", idx };
                     }
                 }
-                else if (*token.attribute == BracketKind::CLOSE)
+                else if (bracket == '}')
                 {
                     if (!bracket_stack.empty())
                         bracket_stack.pop();
@@ -138,8 +116,8 @@ namespace parser
         auto err { verify_command(*this, this->tokens.front()) };
         if (err) return err;
 
-        std::stack<std::pair<char, size_t>> quote_stack;
-        std::stack<size_t>                  bracket_stack;
+        std::stack<size_t> bracket_stack;
+        size_t             quote_idx { std::string::npos };
 
         for (size_t i { 1 }; i < this->tokens.size(); i++)
         {
@@ -152,7 +130,7 @@ namespace parser
                 if (res) return res;
             }
 
-            auto res { check_string_quote_token(*this, quote_stack, i) };
+            auto res { check_string_quote_token(*this, quote_idx, i) };
             if (res) return res;
 
             res = check_substitution_bracket_token(*this, bracket_stack, i);
@@ -163,9 +141,9 @@ namespace parser
             return Error { *this, ErrorType::PARSER_UNCLOSED_BRACKET,
                            "unclosed bracket", bracket_stack.top() };
 
-        if (!quote_stack.empty())
+        if (quote_idx != std::string::npos)
             return Error { *this, ErrorType::PARSER_UNCLOSED_QUOTE,
-                           "unclosed quote", quote_stack.top().second };
+                           "unclosed quote", quote_idx };
 
         return std::nullopt;
     }
@@ -208,11 +186,6 @@ namespace parser
                     : *token.get_data<std::string>();
             j_token["index"] = token.index;
 
-            if (token.attribute)
-                j_token["attribute"] = Json::String { *token.attribute };
-            else
-                j_token["attribute"] = Json::nullValue;
-
             root["tokens"].append(j_token);
         }
 
@@ -237,27 +210,14 @@ namespace parser
     }
 
 
-    auto
-    TokenGroup::operator->() -> std::vector<Token> *
-    {
-        return &this->tokens;
-    }
-
-
     Token::Token(TokenType type, size_t idx, std::string data)
-        : type(type), index(idx), data(std::move(data)), attribute(std::nullopt)
+        : type(type), index(idx), data(std::move(data))
     {
     }
 
 
     Token::Token(TokenType type, size_t idx, const shared_tokens &data)
-        : type(type), index(idx), data(data), attribute(std::nullopt)
-    {
-    }
-
-
-    Token::Token(TokenType type, size_t idx, std::string data, char attr)
-        : type(type), index(idx), data(std::move(data)), attribute(attr)
+        : type(type), index(idx), data(data), operator_type(OperatorType::NONE)
     {
     }
 

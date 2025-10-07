@@ -17,10 +17,6 @@ namespace io
         std::string buff { std::vformat(fmt.get(), fmt_args) };
 
         stream.write(buff.data(), static_cast<std::streamsize>(buff.size()));
-
-        if (stream.bad())
-            throw std::system_error(errno, std::generic_category(),
-                                    "std::ostream::write failed");
     }
 
 

@@ -29,6 +29,7 @@ namespace parser
         PARSER_UNSUPPORTED_OPERATION,
 
         PARSER_EMPTY_SUBSTITUTION,
+        PARSER_EMPTY_STRING,
     };
 
 
@@ -64,6 +65,9 @@ namespace parser
 
         case ErrorType::PARSER_EMPTY_SUBSTITUTION:
             return "parser::EMPTY_SUBSTITUTION";
+
+        case ErrorType::PARSER_EMPTY_STRING:
+            return "parser::EMPTY_STRING";
         }
         // clang-format on
     }
@@ -92,7 +96,7 @@ namespace parser
                 return;
             }
 
-            const Token &TOKEN { tokens->at(m_token_idx) };
+            const Token &TOKEN { tokens.tokens.at(m_token_idx) };
             const size_t INDEX { compute_real_index(tokens, TOKEN.index) };
             const std::string &RAW { tokens.get_toplevel()->raw };
 
