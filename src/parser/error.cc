@@ -23,8 +23,8 @@ Error::format_pretty_message(const std::string        &error_token_text,
 
     m_pretty = std::format("{}error{}: {}\n"
                            "\n"
-                           "  ╭─[{}{}{}: {}:{}]\n"
-                           "  │\n",
+                           "  ╭─[{}{}{}: {}:{}]\n",
+                        //    "  │\n",
                            m_red, COLOR_RESET, ErrorType_to_string(m_type),
                            m_blue, "shell input", COLOR_RESET, position.first,
                            position.second);
@@ -33,7 +33,13 @@ Error::format_pretty_message(const std::string        &error_token_text,
     size_t i { position.first > 0 ? position.first - 1 : 0 };
     for (; i <= std::min(position.first + 1, LINES.size() - 1); i++)
     {
-        std::string msg { std::format("{} │ {}\n", i + 1, LINES[i]) };
+        std::string bg { i % 2 == 0 ? m_bg : m_bg_alt };
+        std::string msg { std::format("{}{}{}{}{} │ {}", bg, m_text_color,
+                                      i + 1, COLOR_RESET, bg, LINES[i]) };
+
+        size_t space_amount { position.second + m_message.length()
+                              - LINES[i].length() };
+        msg += std::string(space_amount, ' ') + COLOR_RESET + '\n';
 
         if (i == position.first)
         {

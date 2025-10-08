@@ -34,9 +34,10 @@ main(int /* argc */, char ** /* argv */) -> int
 
         tokens = parser::parse(str);
 
-        io::println("{}", Json::to_string(tokens->to_json()));
         if (auto err { tokens->verify_syntax() }; err)
             io::println("{}", err->get_message());
+        else
+            io::println("{}", Json::to_string(tokens->to_json()));
     }
 
     return 0;

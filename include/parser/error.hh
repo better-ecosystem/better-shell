@@ -123,6 +123,10 @@ namespace parser
         /* subject to change after config implementation */
         std::string m_red { ANSI_RGB_FG(253, 106, 106) };
         std::string m_blue { ANSI_RGB_FG(70, 172, 173) };
+        std::string m_text_color { ANSI_RGB_FG(150, 150, 150) };
+
+        std::string m_bg { ANSI_RGB_BG(48, 48, 48) };
+        std::string m_bg_alt { ANSI_RGB_BG(75, 75, 75) };
 
 
         void format_pretty_message(const std::string &error_token_text,
