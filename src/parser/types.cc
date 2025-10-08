@@ -26,6 +26,32 @@ namespace parser
 
             const std::string *TEXT { front.get_data<std::string>() };
 
+            if (TEXT->starts_with("./"))
+            {
+                std::filesystem::path path { TEXT->substr(2) };
+                if (!std::filesystem::exists(path))
+                {
+                    return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
+                                   "executable path '{}' doesn't exist", 0,
+                                   *TEXT };
+                }
+
+                path = std::filesystem::canonical(path);
+                if (!std::filesystem::is_regular_file(path))
+                {
+                    return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
+                                   "path '{}' is not a file", 0, *TEXT };
+                }
+
+                if (access(path.c_str(), X_OK) != 0)
+                {
+                    return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
+                                   "path '{}' is not an executable", 0, *TEXT };
+                }
+
+                return std::nullopt;
+            }
+
             if (!cmd::BINARY_PATH_LIST.contains(*TEXT)
                 && !cmd::built_in::COMMANDS.contains(*TEXT))
             {
