@@ -1,3 +1,5 @@
+#include <stack>
+
 #include "parser/parser.hh"
 #include "utils.hh"
 
@@ -8,36 +10,6 @@ namespace parser
 {
     namespace
     {
-        /**
-         * find the last close bracket
-         * ---------------------------
-         *
-         * returns std::string::npos on "unmatched closing bracket",
-         * or returns the length of @p text if no closing bracket is found
-         */
-        [[nodiscard]]
-        auto
-        find_last_close_bracket(const std::string &text, size_t start) -> size_t
-        {
-            size_t bracket_nest { 1 };
-
-            for (; start < text.length(); start++)
-            {
-                char c { text[start] };
-
-                if (c == '{')
-                    bracket_nest++;
-                else if (c == '}')
-                {
-                    bracket_nest--;
-                    if (bracket_nest == 0) return start;
-                }
-            }
-
-            return std::string::npos;
-        }
-
-
         /**
          * determines if a char @p ch belongs to token attribute
          * -----------------------------------------------------
@@ -54,9 +26,6 @@ namespace parser
         }
 
 
-        /**
-         * get the first word of the text, which would be the command
-         */
         [[nodiscard]]
         auto
         get_command(const std::string &str) -> std::string
@@ -145,19 +114,39 @@ namespace parser
         {
             if (text[i] != '{') return false;
 
-            const size_t start_pos { i };
-            i++; /* skip { */
+            std::stack<size_t>  bracket_pos;
+            std::vector<size_t> extra_closing;
+            size_t              end_idx { std::string::npos };
+            bracket_pos.emplace(i);
 
-            tokens->add_token(TokenType::SUB_BRACKET, start_pos, "{");
+            tokens->add_token(TokenType::SUB_BRACKET, i++, "{");
 
-            size_t end_idx { find_last_close_bracket(text, i) };
+            for (size_t j { i }; j < text.length(); j++)
+            {
+                if (text[j] == '{')
+                {
+                    bracket_pos.emplace(j);
+                    continue;
+                }
+
+                if (text[j] == '}')
+                {
+                    if (bracket_pos.empty()) extra_closing.emplace_back(j);
+                    if (!bracket_pos.empty()) bracket_pos.pop();
+                    if (extra_closing.empty() && end_idx == std::string::npos
+                        && bracket_pos.empty())
+                        end_idx = j;
+
+                    continue;
+                }
+            }
+
             if (end_idx == std::string::npos)
             {
                 std::string inner { utils::str::trim(text.substr(i)) };
                 if (!inner.empty())
                 {
                     shared_tokens inner_tokens { parser::parse(inner, tokens) };
-
                     tokens->add_token(TokenType::SUB_CONTENT, i, inner_tokens);
                 }
 
@@ -173,10 +162,12 @@ namespace parser
                 tokens->add_token(TokenType::SUB_CONTENT, i, inner_tokens);
             }
 
-
             tokens->add_token(TokenType::SUB_BRACKET, end_idx, "}");
 
-            i = end_idx;
+            for (const size_t &idx : extra_closing)
+                tokens->add_token(TokenType::SUB_BRACKET, idx, "}");
+
+            i = extra_closing.empty() ? end_idx : extra_closing.back();
             return true;
         }
 

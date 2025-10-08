@@ -35,8 +35,7 @@ main(int /* argc */, char ** /* argv */) -> int
 
         if (auto err { tokens->verify_syntax() }; err)
             io::println("{}", err->get_message());
-        else
-            io::println("{}", Json::to_string(tokens->to_json()));
+        io::println("{}", Json::to_string(tokens->to_json()));
     }
 
     return 0;
