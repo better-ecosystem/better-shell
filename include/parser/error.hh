@@ -89,8 +89,6 @@ namespace parser
                   fmt, std::make_format_args(std::forward<T_Args>(args)...))),
               m_token_idx(token_idx)
         {
-            using namespace std::literals;
-
             if (m_token_idx >= tokens.tokens.size())
             {
                 m_pretty = std::format(
@@ -104,6 +102,7 @@ namespace parser
 
             const std::string *error_token_text { extract_error_token_string(
                 TOKEN, m_token_idx) };
+            if (error_token_text == nullptr) return;
 
             format_pretty_message(*error_token_text, RAW,
                                   line_column_from_offset(RAW, INDEX));

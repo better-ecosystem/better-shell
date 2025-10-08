@@ -19,8 +19,7 @@ namespace parser
         COMMAND,
 
         /**
-         * the argument to a command is the direct string that comes after it
-         * the string must not be a punctuation
+         * the argument to a command is the direct word that comes after it
          */
         ARGUMENT,
 

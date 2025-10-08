@@ -4,7 +4,6 @@
 
 #include "command/runner.hh"
 #include "input/handler.hh"
-#include "output/handler.hh"
 #include "parser/error.hh"
 #include "parser/parser.hh"
 #include "parser/types.hh"

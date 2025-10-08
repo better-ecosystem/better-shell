@@ -54,6 +54,9 @@ namespace parser
         }
 
 
+        /**
+         * get the first word of the text, which would be the command
+         */
         [[nodiscard]]
         auto
         get_command(const std::string &str) -> std::string
@@ -248,7 +251,8 @@ namespace parser
 
 
     auto
-    parse(const std::string &text, const shared_tokens &parent) -> shared_tokens
+    parse(const std::string &text, const shared_tokens &parent) noexcept
+        -> shared_tokens
     {
         auto tokens { std::make_shared<TokenGroup>(text, parent) };
 

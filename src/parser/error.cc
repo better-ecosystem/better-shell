@@ -24,7 +24,6 @@ Error::format_pretty_message(const std::string        &error_token_text,
     m_pretty = std::format("{}error{}: {}\n"
                            "\n"
                            "  ╭─[{}{}{}: {}:{}]\n",
-                        //    "  │\n",
                            m_red, COLOR_RESET, ErrorType_to_string(m_type),
                            m_blue, "shell input", COLOR_RESET, position.first,
                            position.second);
