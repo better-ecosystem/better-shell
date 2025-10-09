@@ -112,34 +112,25 @@ namespace utils::str
 
 
     auto
-    escape(const std::string &str) -> std::string
+    levenshtein_distance(const std::string &a, const std::string &b) -> int
     {
-        std::string output;
-        for (char c : str)
+        const std::spair<size_t>      LEN { a.length(), b.length() };
+        std::vector<std::vector<int>> dp { LEN.first + 1,
+                                           std::vector<int>(LEN.second + 1) };
+
+        for (size_t i { 0 }; i <= LEN.first; i++) dp[i][0] = i;
+        for (size_t j { 0 }; j <= LEN.second; j++) dp[0][j] = j;
+
+        for (size_t i { 1 }; i <= LEN.first; i++)
         {
-            switch (c)
+            for (size_t j { 1 }; j <= LEN.second; j++)
             {
-            case '\n': output += "\\n"; break;
-            case '\r': output += "\\r"; break;
-            case '\t': output += "\\t"; break;
-            case '\v': output += "\\v"; break;
-            case '\f': output += "\\f"; break;
-            case '\b': output += "\\b"; break;
-            case '\a': output += "\\a"; break;
-            case '\\': output += "\\\\"; break;
-            case '\"': output += "\\\""; break;
-            default:
-                if (std::isprint(static_cast<int>(c)) != 0) { output += c; }
-                else
-                {
-                    std::array<char, 5> buf;
-                    std::snprintf(buf.data(), buf.size(), "\\x%02X",
-                                  static_cast<int>(c));
-                    output += buf.data();
-                }
-                break;
+                int cost { (a[i - 1] == b[j - 1]) ? 0 : 1 };
+                dp[i][j] = std::min({ dp[i - 1][j] + 1, dp[i][j - 1] + 1,
+                                      dp[i - 1][j - 1] + cost });
             }
         }
-        return output;
+
+        return dp[LEN.first][LEN.second];
     }
 }

@@ -121,30 +121,6 @@ namespace utils
         const auto *VALUE { std::getenv(env.c_str()) };
         return VALUE == nullptr ? val : VALUE;
     }
-
-
-    auto
-    levenshtein_distance(const std::string &a, const std::string &b) -> int
-    {
-        const std::spair<size_t>      LEN { a.length(), b.length() };
-        std::vector<std::vector<int>> dp { LEN.first + 1,
-                                           std::vector<int>(LEN.second + 1) };
-
-        for (size_t i { 0 }; i <= LEN.first; i++) dp[i][0] = i;
-        for (size_t j { 0 }; j <= LEN.second; j++) dp[0][j] = j;
-
-        for (size_t i { 1 }; i <= LEN.first; i++)
-        {
-            for (size_t j { 1 }; j <= LEN.second; j++)
-            {
-                int cost { (a[i - 1] == b[j - 1]) ? 0 : 1 };
-                dp[i][j] = std::min({ dp[i - 1][j] + 1, dp[i][j - 1] + 1,
-                                      dp[i - 1][j - 1] + cost });
-            }
-        }
-
-        return dp[LEN.first][LEN.second];
-    }
 } /* namespace utils */
 
 

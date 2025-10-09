@@ -119,8 +119,12 @@ namespace utils
         auto is_empty(const std::string &str) -> bool;
 
 
+        /**
+         * calculates the Levenshtein Distance between two strings @p a and @p b
+         */
         [[nodiscard]]
-        auto escape(const std::string &str) -> std::string;
+        auto levenshtein_distance(const std::string &a, const std::string &b)
+            -> int;
     }
 
 
@@ -243,14 +247,6 @@ namespace utils
      */
     [[nodiscard]]
     auto getenv(const std::string &env, const std::string &val) -> std::string;
-
-
-    /**
-     * calculates the Levenshtein Distance between two strings @p a and @p b
-     */
-    [[nodiscard]]
-    auto levenshtein_distance(const std::string &a, const std::string &b)
-        -> int;
 
 
     /**
