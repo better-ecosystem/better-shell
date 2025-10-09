@@ -105,7 +105,41 @@ namespace utils::str
     is_empty(const std::string &str) -> bool
     {
         if (str.empty()) return true;
-        return std::ranges::all_of(str, [](const char &ch) -> bool
-                                   { return std::isspace(ch) != 0; });
+        return std::ranges::all_of(
+            str, [](const char &ch) -> bool
+            { return std::isspace(static_cast<unsigned char>(ch)) != 0; });
+    }
+
+
+    auto
+    escape(const std::string &str) -> std::string
+    {
+        std::string output;
+        for (char c : str)
+        {
+            switch (c)
+            {
+            case '\n': output += "\\n"; break;
+            case '\r': output += "\\r"; break;
+            case '\t': output += "\\t"; break;
+            case '\v': output += "\\v"; break;
+            case '\f': output += "\\f"; break;
+            case '\b': output += "\\b"; break;
+            case '\a': output += "\\a"; break;
+            case '\\': output += "\\\\"; break;
+            case '\"': output += "\\\""; break;
+            default:
+                if (std::isprint(static_cast<int>(c)) != 0) { output += c; }
+                else
+                {
+                    std::array<char, 5> buf;
+                    std::snprintf(buf.data(), buf.size(), "\\x%02X",
+                                  static_cast<int>(c));
+                    output += buf.data();
+                }
+                break;
+            }
+        }
+        return output;
     }
 }

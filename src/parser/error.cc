@@ -4,7 +4,7 @@ using parser::Error;
 
 
 auto
-Error::get_message() const -> std::string
+Error::get_message() -> std::string &
 {
     return m_pretty;
 }
@@ -21,7 +21,7 @@ Error::format_pretty_message(const std::string        &error_token_text,
         std::string(position.second, ' ') + std::string(UNDERLINE_LENGTH, '^'),
     };
 
-    m_pretty = std::format("{}error{}: {}\n"
+    m_pretty = std::format("{}error:{} {}\n"
                            "\n"
                            "  ╭─[{}{}{}: {}:{}]\n",
                            m_red, COLOR_RESET, ErrorType_to_string(m_type),
@@ -69,16 +69,16 @@ Error::extract_error_token_string(const Token &token, size_t token_idx)
         if (const auto *str_ptr { token.get_data<std::string>() })
             return str_ptr;
 
-        m_pretty
-            = std::format("error: {} (token {} has no associated string data)",
-                          m_message, token_idx);
+        m_pretty = std::format(
+            "{}error:{} {} (token {} has no associated string data)", m_red,
+            COLOR_RESET, m_message, token_idx);
         return nullptr;
     }
     catch (const std::bad_variant_access &)
     {
-        m_pretty
-            = std::format("error: {} (token {} has no associated string data)",
-                          m_message, token_idx);
+        m_pretty = std::format(
+            "{}error:{} {} (token {} has no associated string data)", m_red,
+            COLOR_RESET, m_message, token_idx);
         return nullptr;
     }
 }

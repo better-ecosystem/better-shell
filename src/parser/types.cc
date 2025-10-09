@@ -7,6 +7,7 @@
 #include "parser/types.hh"
 
 using namespace std::literals;
+namespace fs = std::filesystem;
 
 
 namespace parser
@@ -15,49 +16,197 @@ namespace parser
     {
         [[nodiscard]]
         auto
-        verify_command(TokenGroup &tokens, Token &front) -> std::optional<Error>
+        collect_paths(const fs::path &dir) -> std::vector<fs::path>
         {
-            if (front.type != TokenType::COMMAND)
+            std::vector<fs::path> paths;
+
+            fs::directory_iterator it { dir };
+            for (const auto &entry : it)
+                paths.emplace_back(fs::relative(fs::canonical(entry.path())));
+            return paths;
+        }
+
+
+        [[nodiscard]]
+        auto
+        find_closest_path(const std::vector<fs::path> &paths,
+                          const fs::path &path) -> std::pair<fs::path, int>
+        {
+            int      smallest { std::numeric_limits<int>::max() };
+            fs::path closest;
+
+            for (const auto &candidate : paths)
             {
-                return Error { tokens,
-                               ErrorType::PARSER_FIRST_TOKEN_IS_NOT_COMMAND,
-                               "the first token is not a command", 0 };
+                fs::path filename { candidate.filename() };
+                int      dist { utils::levenshtein_distance(filename.string(),
+                                                            path.string()) };
+
+                int old { smallest };
+                smallest = std::min(smallest, dist);
+                if (smallest < old) closest = filename;
+
+                if (dist == 0) break;
             }
 
+            return { closest, smallest };
+        }
+
+
+        [[nodiscard]]
+        auto
+        find_nearest_looking_path(const fs::path &base) -> fs::path
+        {
+            std::vector<fs::path> segments;
+            for (const auto &part : base) segments.emplace_back(part.string());
+            if (segments.empty()) return {};
+
+            std::filesystem::path current_path {
+                base.is_absolute() ? base.root_path()
+                                   : std::filesystem::current_path()
+            };
+
+            for (size_t i { 0 }; i < segments.size(); i++)
+            {
+                std::vector<fs::path> children;
+                try
+                {
+                    children = collect_paths(current_path);
+                }
+                catch (...)
+                {
+                    return {};
+                }
+
+                auto [closest,
+                      distance] { find_closest_path(children, segments[i]) };
+
+                int min_distance { 2 + static_cast<int>(segments.size() * 2) };
+                if (distance > min_distance) return {};
+
+                current_path /= closest;
+
+                if (i < segments.size() - 1 && !fs::is_directory(current_path))
+                    return {};
+            }
+
+            return fs::relative(current_path);
+        }
+
+
+        [[nodiscard]]
+        auto
+        handle_path_verification(TokenGroup &tokens, Token &front)
+            -> std::pair<bool, std::optional<Error>>
+        {
             const std::string *TEXT { front.get_data<std::string>() };
 
             if (TEXT->starts_with("./"))
             {
-                std::filesystem::path path { TEXT->substr(2) };
-                if (!std::filesystem::exists(path))
+                fs::path path { TEXT->substr(2) };
+                if (!fs::exists(path))
                 {
-                    return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                                   "executable path '{}' doesn't exist", 0,
-                                   *TEXT };
+                    auto err {
+                        Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
+                               "executable path '{}' doesn't exist", 0, *TEXT }
+                    };
+
+                    fs::path match { find_nearest_looking_path(path) };
+                    if (match.empty()) return { false, err };
+
+                    std::string text { "./"s + match.relative_path().string() };
+
+                    auto c { Error::ask<'y', 'y', 'n'>(
+                        "path '{}' not found, do you mean {}?", *TEXT, text) };
+
+                    if (c != 'y') return { false, err };
+
+                    path       = match;
+                    front.data = text;
+                    return { true, std::nullopt };
                 }
 
-                path = std::filesystem::canonical(path);
-                if (!std::filesystem::is_regular_file(path))
-                {
-                    return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                                   "path '{}' is not a file", 0, *TEXT };
-                }
+                path = fs::canonical(path);
+                if (!fs::is_regular_file(path))
+                    return {
+                        true, Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
+                                     "path '{}' is not a file", 0, *TEXT }
+                    };
 
                 if (access(path.c_str(), X_OK) != 0)
-                {
-                    return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                                   "path '{}' is not an executable", 0, *TEXT };
-                }
-
-                return std::nullopt;
+                    return {
+                        true,
+                        Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
+                               "path '{}' is not an executable", 0, *TEXT }
+                    };
             }
+            return { false, std::nullopt };
+        }
+
+
+        [[nodiscard]]
+        auto
+        handle_command_verification(TokenGroup &tokens, Token &front)
+            -> std::pair<bool, std::optional<Error>>
+        {
+            const std::string *TEXT { front.get_data<std::string>() };
 
             if (!cmd::BINARY_PATH_LIST.contains(*TEXT)
                 && !cmd::built_in::COMMANDS.contains(*TEXT))
             {
-                return Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                               "command '{}' doesn't exist", 0, *TEXT };
+                Error err { tokens, ErrorType::PARSER_INVALID_COMMAND,
+                            "command '{}' doesn't exist", 0, *TEXT };
+
+                int         smallest { std::numeric_limits<int>::max() };
+                std::string bin_name;
+                for (const auto &[name, func] : cmd::built_in::COMMANDS)
+                {
+                    int dist { utils::levenshtein_distance(name, *TEXT) };
+                    if (dist < smallest)
+                    {
+                        smallest = dist;
+                        bin_name = name;
+                    }
+                }
+
+                for (const auto &[name, path] : cmd::BINARY_PATH_LIST)
+                {
+                    int dist { utils::levenshtein_distance(name, *TEXT) };
+                    if (dist < smallest)
+                    {
+                        smallest = dist;
+                        bin_name = name;
+                    }
+                }
+
+                if (smallest > 2) return { true, err };
+                char res { Error::ask<'y', 'y', 'n'>(
+                    "command '{}' doesn't exist, do you mean '{}'?", *TEXT,
+                    bin_name) };
+
+                if (res != 'y') return { true, err };
+                front.data = bin_name;
+
+                return { true, std::nullopt };
             }
+
+            return { false, std::nullopt };
+        }
+
+
+        [[nodiscard]]
+        auto
+        verify_command(TokenGroup &tokens, Token &front) -> std::optional<Error>
+        {
+            if (front.type != TokenType::COMMAND)
+                return Error { tokens,
+                               ErrorType::PARSER_FIRST_TOKEN_IS_NOT_COMMAND,
+                               "the first token is not a command", 0 };
+
+            auto err { handle_path_verification(tokens, front) };
+            if (err.first) return err.second;
+
+            err = handle_command_verification(tokens, front);
+            if (err.first) return err.second;
 
             return std::nullopt;
         }

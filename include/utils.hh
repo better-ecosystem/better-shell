@@ -117,6 +117,10 @@ namespace utils
          */
         [[nodiscard]]
         auto is_empty(const std::string &str) -> bool;
+
+
+        [[nodiscard]]
+        auto escape(const std::string &str) -> std::string;
     }
 
 
