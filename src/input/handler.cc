@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "command/built_in.hh"
 #include "input/handler.hh"
 #include "print.hh"
 
@@ -44,10 +45,7 @@ Handler::read(std::string &str) -> size_t
         default:                    break;
         }
 
-        if (!m_terminal_handler.is_active())
-        {
-            str += c;
-        }
+        if (!m_terminal_handler.is_active()) { str += c; }
 
         if (c == '\n') break;
     }
@@ -61,15 +59,14 @@ Handler::read(std::string &str) -> size_t
 auto
 Handler::should_exit() const -> bool
 {
-    return m_exit;
+    return m_exit || cmd::built_in::SHOULD_EXIT;
 }
 
 
 void
 Handler::exit(char code)
 {
-    const char *type { code == EOT ? "EOT"
-                                     : (code == EOF ? "EOF" : "EXIT") };
+    const char *type { code == EOT ? "EOT" : (code == EOF ? "EOF" : "EXIT") };
     io::println(std::cerr, "\n[{}]: {} ({})", type, APP_ID, APP_VERSION);
     m_exit = true;
 }

@@ -256,6 +256,7 @@ namespace parser
         for (; i < text.length(); i++)
         {
             if (std::isspace(text[i]) != 0) continue;
+            if (text[i] == '\\') continue;
 
             if (handle_string(tokens, i, text)) continue;
             if (handle_substitution(tokens, i, text)) continue;

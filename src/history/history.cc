@@ -1,5 +1,5 @@
-#include <fstream>
 #include <format>
+#include <fstream>
 
 #include "history/history.hh"
 #include "utils.hh"
@@ -7,7 +7,7 @@
 using history::Handler;
 
 
-Handler::Handler(const std::filesystem::path &history_file)
+Handler::Handler(const std::filesystem::path &history_file) : m_first_run(true)
 {
     if (history_file.empty()) { m_history_file = get_default_history_path(); }
     else
@@ -22,7 +22,9 @@ Handler::Handler(const std::filesystem::path &history_file)
     std::ifstream file { m_history_file };
 
     for (std::string line; std::getline(file, line);)
-        m_lines.emplace_back(line);
+        m_lines.emplace_back(utils::str::trim(line));
+
+    m_idx = m_lines.size() - 1;
 }
 
 
@@ -48,13 +50,15 @@ Handler::push_back(const std::string &text)
     if (text.empty() || text[0] == '\n') return;
     if (m_lines.back() == text) return;
 
-    m_lines.emplace_back(text);
+    std::string trimmed { utils::str::trim(text) };
+
+    m_lines.emplace_back(trimmed);
 
     std::ofstream file { m_history_file, std::ios_base::app };
     if (file.is_open())
     {
         /* std::endl puts a newline and flush. */
-        file << text << std::endl; //NOLINT
+        file << trimmed << std::endl; //NOLINT
     }
     file.close();
 }
@@ -75,7 +79,9 @@ Handler::get_prev() -> std::optional<std::string>
 {
     if (m_idx == 0) return m_lines[m_idx];
 
-    m_idx--;
+    if (!m_first_run) m_idx--;
+
+    m_first_run = false;
     return m_lines[m_idx];
 }
 
@@ -83,5 +89,6 @@ Handler::get_prev() -> std::optional<std::string>
 void
 Handler::reset()
 {
-    m_idx = m_lines.size() - 1;
+    m_idx       = m_lines.size() - 1;
+    m_first_run = true;
 }

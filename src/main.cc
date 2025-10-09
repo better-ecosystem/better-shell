@@ -26,10 +26,10 @@ main(int /* argc */, char ** /* argv */) -> int
 
     while (!input.should_exit())
     {
-        size_t len { input.read(str) };
+        input.read(str);
 
         if (input.should_exit()) break;
-        if (len == 0) continue;
+        if (utils::str::is_empty(str)) continue;
 
         tokens = parser::parse(str);
 

@@ -55,6 +55,8 @@ namespace input::term
         Cursor m_pos;
         bool   m_escaped;
 
+        size_t m_highlight_start_pos;
+
         termios m_old_term;
         bool    m_is_term;
 
@@ -69,6 +71,10 @@ namespace input::term
 
 
         void handle_delete(std::string &str, bool ctrl);
+
+
+        auto handle_highlight(const std::string &str, const std::string &seq)
+            -> bool;
 
 
         auto handle_ansi(std::string &str, std::streambuf *sbuf) -> bool;

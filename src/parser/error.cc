@@ -15,7 +15,7 @@ Error::format_pretty_message(const std::string        &error_token_text,
                              const std::string        &top_level_raw_string,
                              std::pair<size_t, size_t> position)
 {
-    const auto   LINES { utils::str::split_lines(top_level_raw_string) };
+    const auto   LINES { utils::str::split(top_level_raw_string, '\n') };
     const size_t UNDERLINE_LENGTH { MAXB(1, error_token_text.length()) };
     const auto   UNDERLINE_MARKER {
         std::string(position.second, ' ') + std::string(UNDERLINE_LENGTH, '^'),

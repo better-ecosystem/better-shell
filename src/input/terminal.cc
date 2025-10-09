@@ -1,6 +1,7 @@
 #include <csignal>
 #include <cwchar>
 #include <iostream>
+#include <regex>
 
 #include <unistd.h>
 #include <utf8.h>
@@ -41,11 +42,30 @@ namespace
 
         return buff.data();
     }
+
+
+    /**
+     * removes all "highlight" from a string @p str
+     */
+    void
+    remove_highlight(std::string &str)
+    {
+        static const std::regex ansi_pattern(R"(\x1B\[\d+;\d+m)");
+
+        str = std::regex_replace(str, ansi_pattern, "");
+        static const std::string reset_seq { "\033[0;0m" };
+
+        size_t pos;
+        while ((pos = str.find(reset_seq)) != std::string::npos)
+            str.erase(pos, reset_seq.length());
+    }
 }
 
 
 Handler *Handler::m_handler_instance { nullptr };
-Handler::Handler(std::istream *stream) : m_stream(stream), m_is_term(false)
+Handler::Handler(std::istream *stream)
+    : m_stream(stream), m_highlight_start_pos(std::string::npos),
+      m_is_term(false)
 {
     if (stream->rdbuf() == std::cin.rdbuf() && isatty(STDIN_FILENO) != 0)
     {
@@ -109,25 +129,17 @@ Handler::handle(const unsigned char &current,
 {
     if (!m_is_term) return RETURN_NONE;
 
-    if (current == '\\')
-    {
-        m_escaped = true;
-        io::print("{}", static_cast<char>(current));
-        insert_char_to_cursor(str, current);
-        return RETURN_CONTINUE;
-    }
-
     if (current == '\n')
     {
         io::println("");
 
-        if (m_escaped)
+        if (str[m_pos.get_string_idx(str) - 1] == '\\')
         {
             insert_char_to_cursor(str, current);
             return RETURN_CONTINUE;
         }
 
-        m_history->push_back(str);
+        if (!utils::str::is_empty(str)) m_history->push_back(str);
         m_history->reset();
         return RETURN_DONE;
     }
@@ -161,7 +173,7 @@ Handler::handle(const unsigned char &current,
         if (m_u8_buffer.size() == m_u8_expected_len)
         {
             io::print("\033[s{}{}\033[u\033[C", m_u8_buffer,
-                      str.substr(m_pos.x));
+                      str.substr(m_pos.get_string_idx(str)));
             insert_u8_to_cursor(str);
             m_u8_buffer.clear();
             m_u8_expected_len = 0;
@@ -173,7 +185,7 @@ Handler::handle(const unsigned char &current,
     if (utils::utf8::is_ascii_byte(current))
     {
         io::print("\033[s{}{}\033[u\033[C", static_cast<char>(current),
-                  str.substr(m_pos.x));
+                  str.substr(m_pos.get_string_idx(str)));
         insert_char_to_cursor(str, current);
     }
 
@@ -269,10 +281,30 @@ Handler::handle_ansi(std::string &str, std::streambuf *sbuf) -> bool
     if (seq.empty()) return false;
 
     const bool CTRL { utils::ansi::is_ctrl_pressed(seq) };
+    const bool SHIFT { utils::ansi::is_shift_pressed(seq) };
+
+    if (!handle_highlight(str, seq))
+    {
+        if (m_highlight_start_pos != std::string::npos)
+        {
+            m_highlight_start_pos = std::string::npos;
+
+            io::print("\033[s");
+            io::print("\r\033[K");
+            show_prompt();
+
+            io::print("{}", str);
+
+            io::print("\033[u");
+        }
+    }
+    else
+        return true;
 
     if (utils::ansi::is_arrow(seq))
     {
         const auto DIRECTION { Cursor::Direction(seq.back()) };
+
         return m_pos.handle_arrows(DIRECTION, str, CTRL)
             || handle_history(DIRECTION, str);
     }
@@ -281,6 +313,64 @@ Handler::handle_ansi(std::string &str, std::streambuf *sbuf) -> bool
     {
         return m_pos.handle_home_end(home_end, str, CTRL);
     }
+    return true;
+}
+
+
+auto
+Handler::handle_highlight(const std::string &str, const std::string &seq)
+    -> bool
+{
+    if (!utils::ansi::is_shift_pressed(seq)) return false;
+
+    if (m_highlight_start_pos == std::string::npos)
+        m_highlight_start_pos = m_pos.get_string_idx(str);
+
+    if (utils::ansi::is_arrow(seq))
+    {
+        const auto DIRECTION { Cursor::Direction(seq.back()) };
+
+        if (!m_pos.handle_arrows(DIRECTION, str,
+                                 utils::ansi::is_ctrl_pressed(seq)))
+            return false;
+    }
+
+    if (int home_end { utils::ansi::is_home_end(seq) }; home_end != 0)
+    {
+        if (!m_pos.handle_home_end(home_end, str,
+                                   utils::ansi::is_ctrl_pressed(seq)))
+            return false;
+    }
+
+    /* highlight from old position to new position */
+    size_t highlight { m_pos.get_string_idx(str) };
+
+    if (m_highlight_start_pos != highlight)
+    {
+        size_t start { std::min(m_highlight_start_pos, highlight) };
+        size_t end { std::max(m_highlight_start_pos, highlight) };
+
+        io::print("\033[s");
+        io::print("\r\033[K");
+        show_prompt();
+
+        io::print("{}", str.substr(0, start));
+        io::print("\033[48;5;255m\033[30m");
+        io::print("{}", str.substr(start, end - start));
+        io::print("\033[0m");
+        io::print("{}", str.substr(end));
+
+        io::print("\033[u");
+    }
+    else
+    {
+        io::print("\033[s");
+        io::print("\r\033[K");
+        show_prompt();
+        io::print("{}", str);
+        io::print("\033[u");
+    }
+
     return true;
 }
 

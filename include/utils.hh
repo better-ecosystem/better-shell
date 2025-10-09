@@ -57,10 +57,11 @@ namespace utils
     namespace str
     {
         /**
-         * transform a multi-line string @p str into a vector of lines
+         * transform a string @p str at @p delim into a vector of strings
          */
         [[nodiscard]]
-        auto split_lines(const std::string &str) -> std::vector<std::string>;
+        auto split(const std::string &str, char delim = '\n')
+            -> std::vector<std::string>;
 
 
         /**
@@ -106,6 +107,13 @@ namespace utils
         [[nodiscard]]
         auto split(const std::string &str, size_t pos)
             -> std::pair<std::string, std::string>;
+
+
+        /**
+         * checks whether @p str is empty or only consists of whitespaces
+         */
+        [[nodiscard]]
+        auto is_empty(const std::string &str) -> bool;
     }
 
 
@@ -119,6 +127,22 @@ namespace utils
      */
     namespace ansi
     {
+        // clang-format off
+        static inline constexpr std::array<std::array<int, 3>, 8> COLORS {{
+            { 0,   0,   0   }, /* black   */
+            { 255, 0,   0   }, /* red     */
+            { 0,   255, 0   }, /* green   */
+            { 255, 255, 0   }, /* yellow  */
+            { 0,   0,   255 }, /* blue    */
+            { 255, 0,   255 }, /* magenta */
+            { 0,   255, 255 }, /* cyan    */
+            { 255, 255, 255 }, /* white   */
+        }};
+
+        static inline constexpr std::array<int, 3> INVALID_COLOR { -1, -1, -1 };
+        // clang-format on
+
+
         /**
          * checks whether @p seq represents an arrow key
          */
@@ -127,10 +151,17 @@ namespace utils
 
 
         /**
-         * checks if Ctrl was held during a sequence @p seq
+         * checks if Left Ctrl was held during a sequence @p seq
          */
         [[nodiscard]]
         auto is_ctrl_pressed(const std::string &seq) -> bool;
+
+
+        /**
+         * checks if Left Shift was held during a sequence @p seq
+         */
+        [[nodiscard]]
+        auto is_shift_pressed(const std::string &seq) -> bool;
 
 
         /**
@@ -147,6 +178,32 @@ namespace utils
          */
         [[nodiscard]]
         auto is_home_end(const std::string &seq) -> int;
+
+
+        /**
+         * returns the RGB value of an ansi color sequence @p seq
+         * -----------------------------------------------
+         *
+         * @p seq must start with a [ and ends with an m
+         * this function does not calculate bold/bright colours
+         */
+        [[nodiscard]]
+        auto get_ansi_color(const std::string &seq) -> std::array<int, 3>;
+
+
+        /**
+         * determines whether color @p ansi_seq fg's should be white or black
+         * ------------------------------------------------------------------
+         *
+         * if the function returns true, then the foreground should be white,
+         * or if it is false, the foreground should be black
+         *
+         * the function determines the foreground color by checking if
+         * the color contained inside @p ansi_seq is bright enough
+         * for the foreground to be black
+         */
+        [[nodiscard]]
+        auto get_highlighted_foreground(const std::string &ansi_seq) -> bool;
 
 
 #ifndef BETTER_SH_NO_COLOR
