@@ -5,6 +5,9 @@
 #include <json/value.h>
 
 
+namespace std { template <typename Tp> using spair = pair<Tp, Tp>; }
+
+
 namespace utils
 {
     namespace utf8
@@ -236,6 +239,14 @@ namespace utils
      */
     [[nodiscard]]
     auto getenv(const std::string &env, const std::string &val) -> std::string;
+
+
+    /**
+     * calculates the Levenshtein Distance between two strings @p a and @p b
+     */
+    [[nodiscard]]
+    auto levenshtein_distance(const std::string &a, const std::string &b)
+        -> int;
 
 
     /**
