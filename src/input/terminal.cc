@@ -133,6 +133,7 @@ Handler::handle(const unsigned char &current,
     {
         io::println("");
 
+        if (utils::str::is_empty(str)) return RETURN_DONE;
         if (str[m_pos.get_string_idx(str) - 1] == '\\')
         {
             insert_char_to_cursor(str, current);
