@@ -1,12 +1,13 @@
-<div align=center>
+<div align="center">
 
 # Better Shell
 
-A command-line shell made with C++20 designed to be "text editor-like"
+A modern command-line shell built with C++20, designed to feel like a **text editor**
 
 </div>
 
-**Better Shell** is a shell for **Better Ecosystem**, the difference between
-better-sh and other shells, is that better-sh acts like a text editor.
-That means better-sh will have a more familiar cursor movements compared
-to other shells.
+**Better Shell** is part of the **Better Ecosystem**. Unlike traditional shells, **Better Shell** behaves like a text editor, offering intuitive and familiar cursor movements and editing capabilities.
+
+This design makes command-line interaction smoother and more efficient, especially for users accustomed to text editors.
+
+---
