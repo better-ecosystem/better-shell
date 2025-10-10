@@ -4,9 +4,9 @@
 
 #include "command/runner.hh"
 #include "input/handler.hh"
-#include "parser/error.hh"
-#include "parser/parser.hh"
-#include "parser/types.hh"
+// #include "parser/error.hh"
+// #include "parser/parser.hh"
+// #include "parser/types.hh"
 #include "print.hh"
 
 
@@ -22,7 +22,7 @@ main(int /* argc */, char ** /* argv */) -> int
     input::Handler input { &std::cin };
     std::string    str;
 
-    std::shared_ptr<parser::TokenGroup> tokens;
+    // std::shared_ptr<parser::TokenGroup> tokens;
 
     while (!input.should_exit())
     {
@@ -31,11 +31,11 @@ main(int /* argc */, char ** /* argv */) -> int
         if (input.should_exit()) break;
         if (utils::str::is_empty(str)) continue;
 
-        tokens = parser::parse(str);
+        // tokens = parser::parse(str);
 
-        if (auto err { tokens->verify_syntax() }; err)
-            io::println("{}", err->get_message());
-        io::println("{}", Json::to_string(tokens->to_json()));
+        // if (auto err { tokens->verify_syntax() }; err)
+            // io::println("{}", err->get_message());
+        // io::println("{}", Json::to_string(tokens->to_json()));
     }
 
     return 0;
