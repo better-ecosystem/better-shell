@@ -62,7 +62,7 @@ namespace parser
 
 
     TokenGroup::TokenGroup(std::string raw, const shared_tokens &parent)
-        : tokens({}), raw(std::move(raw)), parent(parent)
+        : tokens({}), raw(std::move(raw)), source("stdin"), parent(parent)
     {
     }
 
@@ -76,6 +76,15 @@ namespace parser
     Token::Token(TokenType type, size_t idx, const shared_tokens &data)
         : type(type), index(idx), data(data), operator_type(OperatorType::NONE)
     {
+    }
+
+
+    auto
+    Token::operator==(const Token &other) const -> bool
+    {
+        return this->type == other.type && this->index == other.index
+            && this->data == other.data
+            && this->operator_type == other.operator_type;
     }
 
 

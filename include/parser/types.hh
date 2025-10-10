@@ -7,6 +7,8 @@
 
 #include <json/value.h>
 
+#include "../error.hh"
+
 
 namespace parser
 {
@@ -201,6 +203,13 @@ namespace parser
 
 
         /**
+         * the place where the token got its input from, will be "stdin" if
+         * input comes from std::cin
+         */
+        std::string source;
+
+
+        /**
          * used to resolve errors
          */
         std::weak_ptr<TokenGroup> parent;
@@ -221,7 +230,7 @@ namespace parser
          * @warning the function mutates member @e tokens
          */
         [[nodiscard]]
-        auto verify_syntax() -> std::optional<Error>;
+        auto verify_syntax() -> std::optional<::error::Info>;
 
 
         /**
@@ -290,6 +299,10 @@ namespace parser
         Token() = default;
         Token(TokenType type, size_t idx, std::string data);
         Token(TokenType type, size_t idx, const shared_tokens &data);
+
+
+        [[nodiscard]]
+        auto operator==(const Token &other) const -> bool;
 
 
         /**

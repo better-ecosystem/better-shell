@@ -96,7 +96,7 @@ namespace parser
         [[nodiscard]]
         auto
         handle_path_verification(TokenGroup &tokens, Token &front)
-            -> std::pair<bool, std::optional<Error>>
+            -> std::pair<bool, std::optional<::error::Info>>
         {
             const std::string *TEXT { front.get_data<std::string>() };
 
@@ -108,32 +108,28 @@ namespace parser
                 path = fs::canonical(path);
 
                 if (!fs::is_regular_file(path))
-                    return {
-                        true, Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                                     "path '{}' is not a file", 0, *TEXT }
-                    };
+                    return { true, error::create<error::Type::INVALID_COMMAND>(
+                                       tokens, front, "path '{}' is not a file",
+                                       *TEXT) };
 
                 if (access(path.c_str(), X_OK) != 0)
-                    return {
-                        true,
-                        Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                               "path '{}' is not an executable", 0, *TEXT }
-                    };
+                    return { true,
+                             error::create<error::Type::INVALID_COMMAND>(
+                                 tokens, front,
+                                 "path '{}' is not an executable", *TEXT) };
 
                 return { false, std::nullopt };
             }
 
-            auto err {
-                Error { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                       "executable path '{}' doesn't exist", 0, *TEXT }
-            };
+            auto err { error::create<error::Type::INVALID_COMMAND>(
+                tokens, front, "executable path '{}' doesn't exist", *TEXT) };
 
             fs::path match { find_nearest_looking_path(path) };
             if (match.empty()) return { false, err };
 
             std::string text { "./"s + match.relative_path().string() };
 
-            auto c { Error::ask<'y', 'y', 'n'>(
+            auto c { ::error::ask<'y', 'y', 'n'>(
                 "path '{}' not found, do you mean {}?", *TEXT, text) };
 
             if (c != 'y') return { false, err };
@@ -147,15 +143,15 @@ namespace parser
         [[nodiscard]]
         auto
         handle_command_verification(TokenGroup &tokens, Token &front)
-            -> std::pair<bool, std::optional<Error>>
+            -> std::pair<bool, std::optional<::error::Info>>
         {
             const std::string *TEXT { front.get_data<std::string>() };
 
             if (!cmd::BINARY_PATH_LIST.contains(*TEXT)
                 && !cmd::built_in::COMMANDS.contains(*TEXT))
             {
-                Error err { tokens, ErrorType::PARSER_INVALID_COMMAND,
-                            "command '{}' doesn't exist", 0, *TEXT };
+                auto err { error::create<error::Type::INVALID_COMMAND>(
+                    tokens, front, "command '{}' doesn't exist", *TEXT) };
 
                 int         smallest { std::numeric_limits<int>::max() };
                 std::string bin_name;
@@ -180,7 +176,7 @@ namespace parser
                 }
 
                 if (smallest > 2) return { true, err };
-                char res { Error::ask<'y', 'y', 'n'>(
+                char res { ::error::ask<'y', 'y', 'n'>(
                     "command '{}' doesn't exist, do you mean '{}'?", *TEXT,
                     bin_name) };
 
@@ -196,13 +192,9 @@ namespace parser
 
         [[nodiscard]]
         auto
-        verify_command(TokenGroup &tokens, Token &front) -> std::optional<Error>
+        verify_command(TokenGroup &tokens, Token &front)
+            -> std::optional<::error::Info>
         {
-            if (front.type != TokenType::COMMAND)
-                return Error { tokens,
-                               ErrorType::PARSER_FIRST_TOKEN_IS_NOT_COMMAND,
-                               "the first token is not a command", 0 };
-
             auto err { handle_path_verification(tokens, front) };
             if (err.first) return err.second;
 
@@ -214,7 +206,7 @@ namespace parser
         auto
         check_string_quote_token(TokenGroup &tokens,
                                  size_t     &quote_idx,
-                                 size_t      idx) -> std::optional<Error>
+                                 size_t idx) -> std::optional<::error::Info>
         {
             const auto &token { tokens.tokens[idx] };
 
@@ -226,8 +218,9 @@ namespace parser
                         && tokens.tokens[quote_idx + 1].type
                                != TokenType::STRING_CONTENT)
                     {
-                        return Error { tokens, ErrorType::PARSER_EMPTY_STRING,
-                                       "string is empty", quote_idx };
+                        return error::create<error::Type::EMPTY_STRING>(
+                            tokens, tokens.tokens[quote_idx],
+                            "string is empty");
                     }
                     quote_idx = std::string::npos;
                 }
@@ -242,7 +235,8 @@ namespace parser
         auto
         check_substitution_bracket_token(TokenGroup         &tokens,
                                          std::stack<size_t> &bracket_stack,
-                                         size_t idx) -> std::optional<Error>
+                                         size_t              idx)
+            -> std::optional<::error::Info>
         {
             const auto &token { tokens.tokens[idx] };
 
@@ -259,9 +253,9 @@ namespace parser
                         && tokens.tokens[idx + 1].type
                                != TokenType::SUB_CONTENT)
                     {
-                        return Error { tokens,
-                                       ErrorType::PARSER_EMPTY_SUBSTITUTION,
-                                       "substitution has no content", idx };
+                        return error::create<error::Type::EMPTY_SUBSTITUTION>(
+                            tokens, tokens.tokens[idx],
+                            "substitution has no content");
                     }
                 }
                 else if (bracket == '}')
@@ -271,9 +265,9 @@ namespace parser
                     else
                     {
                         /* unexpected closing bracket */
-                        return Error { tokens,
-                                       ErrorType::PARSER_UNCLOSED_BRACKET,
-                                       "unmatched closing bracket", idx };
+                        return error::create<error::Type::UNCLOSED_BRACKET>(
+                            tokens, tokens.tokens[idx],
+                            "unmatched closing bracket");
                     }
                 }
             }
@@ -285,7 +279,7 @@ namespace parser
         [[nodiscard]]
         auto
         check_parameter_token(TokenGroup &tokens, size_t idx)
-            -> std::optional<Error>
+            -> std::optional<::error::Info>
         {
             if (tokens.tokens[idx].type != TokenType::PARAMETER)
                 return std::nullopt;
@@ -294,14 +288,14 @@ namespace parser
 
             if (!text->empty()) return std::nullopt;
 
-            return Error { tokens, ErrorType::PARSER_EMPTY_PARAM,
-                           "parameter not given", idx };
+            return error::create<error::Type::EMPTY_PARAM>(
+                tokens, tokens.tokens[idx], "parameter not given");
         }
     }
 
 
     auto
-    TokenGroup::verify_syntax() -> std::optional<Error>
+    TokenGroup::verify_syntax() -> std::optional<::error::Info>
     {
         using enum TokenType;
 
@@ -333,12 +327,13 @@ namespace parser
         }
 
         if (!bracket_stack.empty())
-            return Error { *this, ErrorType::PARSER_UNCLOSED_BRACKET,
-                           "unclosed bracket", bracket_stack.top() };
+            return error::create<error::Type::UNCLOSED_BRACKET>(
+                *this, tokens[bracket_stack.top()], "unclosed bracket");
 
         if (quote_idx != std::string::npos)
-            return Error { *this, ErrorType::PARSER_UNCLOSED_QUOTE,
-                           "unclosed quote", quote_idx };
+            return error::create<error::Type::UNCLOSED_QUOTE>(
+                *this, tokens[quote_idx], "unclosed quote");
+
 
         return std::nullopt;
     }
