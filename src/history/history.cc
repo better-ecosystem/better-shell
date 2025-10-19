@@ -24,7 +24,11 @@ Handler::Handler(const std::filesystem::path &history_file) : m_first_run(true)
     for (std::string line; std::getline(file, line);)
         m_lines.emplace_back(utils::str::trim(line));
 
-    m_idx = m_lines.size() - 1;
+    if (!m_lines.empty()) {
+        m_idx = m_lines.size() - 1;
+    } else {
+        m_idx = 0; // default to 0 if there no history
+    }
 }
 
 
@@ -48,7 +52,7 @@ void
 Handler::push_back(const std::string &text)
 {
     if (text.empty() || text[0] == '\n') return;
-    if (m_lines.back() == text) return;
+    if (!m_lines.empty() && m_lines.back() == text) return;
 
     std::string trimmed { utils::str::trim(text) };
 
