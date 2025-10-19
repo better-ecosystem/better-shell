@@ -36,7 +36,7 @@ namespace input::term
         void reset();
 
 
-        static void show_prompt();
+        void show_prompt();
 
 
         [[nodiscard]]
@@ -51,6 +51,8 @@ namespace input::term
         std::istream *m_stream;
         std::string   m_u8_buffer;
         size_t        m_u8_expected_len;
+
+        std::string m_prompt;
 
         Cursor m_pos;
         bool   m_escaped;

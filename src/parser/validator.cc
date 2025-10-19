@@ -134,6 +134,9 @@ namespace parser
 
             if (c != 'y') return { false, err };
 
+            if (size_t it { tokens.raw.find(*TEXT) }; it != std::string::npos)
+                tokens.raw.replace(it, text.length(), text);
+
             path       = match;
             front.data = text;
             return { true, std::nullopt };

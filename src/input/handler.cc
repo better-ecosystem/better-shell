@@ -22,7 +22,7 @@ Handler::read(std::string &str) -> size_t
     bool reading { true };
     char c;
 
-    input::term::Handler::show_prompt();
+    m_terminal_handler.show_prompt();
 
     while (reading)
     {

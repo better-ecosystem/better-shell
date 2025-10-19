@@ -5,9 +5,9 @@
 #include <variant>
 #include <vector>
 
-#include <json/value.h>
-
 #include "../error.hh"
+
+namespace Json { class Value; }
 
 
 namespace parser
@@ -31,7 +31,6 @@ namespace parser
          * a short flag (starts with 1 dash '-')
          */
         FLAG,
-
 
         /**
          * the parameters given to a flag/argument
@@ -143,9 +142,6 @@ namespace parser
          * proccess code [idz]: N
          */
         SEPARATOR_MULTI,
-
-
-        NONE,
     };
 
 
@@ -183,7 +179,6 @@ namespace parser
         case OperatorType::LOGICAL_NOT:        return "Op::LOGICAL_NOT";
         case OperatorType::SEPARATOR_SEQUENCE: return "Op::SEPARATOR_SEQUENCE";
         case OperatorType::SEPARATOR_MULTI:    return "Op::SEPARATOR_MULTI";
-        case OperatorType::NONE:               return "Op::NONE";
         }
         return "Op::UNKNOWN";
     }
@@ -196,7 +191,7 @@ namespace parser
     /**
      * a container for @e Token
      */
-    struct TokenGroup : std::enable_shared_from_this<TokenGroup>
+    struct TokenGroup
     {
         std::vector<Token> tokens;
         std::string        raw;
@@ -251,7 +246,7 @@ namespace parser
          * transform the tokens into a json object
          */
         [[nodiscard]]
-        auto to_json() -> Json::Value;
+        auto to_json() const -> Json::Value;
 
 
         /**
@@ -293,7 +288,7 @@ namespace parser
         /**
          * stores the kind of operator if @e type is OPERATOR
          */
-        OperatorType operator_type;
+        std::optional<OperatorType> operator_type;
 
 
         Token() = default;

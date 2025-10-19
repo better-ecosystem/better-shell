@@ -133,4 +133,28 @@ namespace utils::str
 
         return dp[LEN.first][LEN.second];
     }
+
+
+    auto
+    index_to_line_column(const std::string &text, size_t index)
+        -> std::spair<size_t>
+    {
+        size_t line { 0 };
+        size_t col { 0 };
+
+        size_t i { 0 };
+        while (i < index && i < text.length())
+        {
+            if (text[i] == '\n')
+            {
+                line++;
+                col = 0;
+            }
+            else
+                col++;
+            i++;
+        }
+
+        return { line, col };
+    }
 }

@@ -125,6 +125,14 @@ namespace utils
         [[nodiscard]]
         auto levenshtein_distance(const std::string &a, const std::string &b)
             -> int;
+
+
+        /**
+         * get the line and column of a string @p text from an index @p index
+         */
+        [[nodiscard]]
+        auto index_to_line_column(const std::string &text, size_t index)
+            -> std::spair<size_t>;
     }
 
 

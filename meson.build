@@ -1,6 +1,5 @@
 project('Better Shell', 'cpp',
         default_options: [ 'cpp_std=c++20', 'warning_level=3' ],
-        meson_version: '>=1.8.0',
         version: '0.0.1',
         license: 'GPL-3.0-or-later',
         license_files: [ 'COPYING' ])

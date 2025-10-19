@@ -3,34 +3,6 @@
 using error::Info;
 
 
-namespace
-{
-    [[nodiscard]]
-    auto
-    index_to_line_column(const std::string &text, size_t index)
-        -> std::spair<size_t>
-    {
-        size_t line { 0 };
-        size_t col { 0 };
-
-        size_t i { 0 };
-        while (i < index && i < text.length())
-        {
-            if (text[i] == '\n')
-            {
-                line++;
-                col = 0;
-            }
-            else
-                col++;
-            i++;
-        }
-
-        return { line, col };
-    }
-}
-
-
 void
 Info::set_error_context(const std::string &input_source,
                         const std::string &text,
@@ -39,7 +11,7 @@ Info::set_error_context(const std::string &input_source,
 {
     if (input_source.empty() || text.empty()) return;
 
-    m_error_pos    = index_to_line_column(text, idx);
+    m_error_pos    = utils::str::index_to_line_column(text, idx);
     m_error_lines  = utils::str::split(text, '\n');
     m_input_source = input_source;
     m_error_len    = len;

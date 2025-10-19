@@ -117,8 +117,9 @@ Handler::show_prompt()
 
     size_t pos { path.find(HOME) };
     path.replace(pos, HOME.length(), "~");
+    m_prompt = std::format("[{}]$ ", path);
 
-    io::print("[{}]$ ", path);
+    io::print("{}", m_prompt);
 }
 
 

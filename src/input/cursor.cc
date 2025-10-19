@@ -160,3 +160,33 @@ Cursor::handle_left_arrow(const std::string &str, bool ctrl) -> bool
 
     return true;
 }
+
+
+auto
+Cursor::handle_up_arrow(const std::string &str) -> bool
+{
+    if (y == 0) return false;
+    std::spair old { x, y };
+
+    while (x > 0)
+    {
+        io::print("\033[D");
+        x--;
+    }
+
+    return true;
+}
+
+
+auto
+Cursor::handle_down_arrow(const std::string &str) -> bool
+{
+    if (y <= std::ranges::count(str, '\n'))
+    {
+        io::print("\033[B");
+        y++;
+        return true;
+    }
+
+    return false;
+}

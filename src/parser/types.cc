@@ -25,14 +25,14 @@ namespace parser
 
 
     auto
-    TokenGroup::to_json() -> Json::Value
+    TokenGroup::to_json() const -> Json::Value
     {
         Json::Value root { Json::objectValue };
 
         root["raw"]    = this->raw;
         root["tokens"] = Json::arrayValue;
 
-        for (auto &token : this->tokens)
+        for (const auto &token : this->tokens)
         {
             Json::Value j_token { Json::objectValue };
             j_token["type"] = Json::String { TokenType_to_string(token.type) };
@@ -74,7 +74,7 @@ namespace parser
 
 
     Token::Token(TokenType type, size_t idx, const shared_tokens &data)
-        : type(type), index(idx), data(data), operator_type(OperatorType::NONE)
+        : type(type), index(idx), data(data)
     {
     }
 
