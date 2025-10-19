@@ -166,7 +166,7 @@ auto
 Cursor::handle_up_arrow(const std::string &str) -> bool
 {
     if (y == 0) return false;
-    std::spair old { x, y };
+    std::spair<int> old { x, y };
 
     while (x > 0)
     {
