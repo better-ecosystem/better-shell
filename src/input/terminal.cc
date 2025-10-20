@@ -112,6 +112,8 @@ Handler::reset()
 void
 Handler::show_prompt()
 {
+    if (!m_is_term) return;
+
     std::string HOME { utils::getenv("HOME") };
     std::string path { std::filesystem::current_path().string() };
 

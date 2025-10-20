@@ -17,7 +17,6 @@ add_project_arguments([
 ], language: 'cpp')
 
 subdir('src')
-
 executable('better-shell', source_files,
            include_directories: include_directories('include',
                                                     'extern/utf8cpp',

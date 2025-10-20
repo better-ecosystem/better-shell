@@ -66,7 +66,10 @@ Handler::should_exit() const -> bool
 void
 Handler::exit(char code)
 {
-    const char *type { code == EOT ? "EOT" : (code == EOF ? "EOF" : "EXIT") };
-    io::println(std::cerr, "\n[{}]: {} ({})", type, APP_ID, APP_VERSION);
+    if (m_terminal_handler.is_active())
+    {
+        const char *type { code == EOT ? "EOT" : (code == EOF ? "EOF" : "EXIT") };
+        io::println(std::cerr, "\n[{}]: {} ({})", type, APP_ID, APP_VERSION);
+    }
     m_exit = true;
 }
