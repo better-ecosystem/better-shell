@@ -18,32 +18,30 @@ ArgParser::is_flag(std::string_view long_flag,
         if (arg.starts_with("--"))
         {
             /* arg without the dashes */
-            std::string_view _arg { arg.data() + 2 };
+            std::string_view trimmed { arg.data() + 2 };
 
-            if (_arg.starts_with(long_flag))
-            {
-                const size_t LONG_FLAG_LEN { long_flag.length() };
-                if (_arg.length() > LONG_FLAG_LEN && _arg[LONG_FLAG_LEN] != '=')
-                    continue;
+            if (!trimmed.starts_with(long_flag)) continue;
 
-                if (!accept_param) m_args.erase(m_args.begin() + i);
-                return { i };
-            }
+            const size_t LONG_FLAG_LEN { long_flag.length() };
 
-            continue;
+            if (trimmed.length() > LONG_FLAG_LEN
+                && trimmed[LONG_FLAG_LEN] != '=')
+                continue;
+
+            if (!accept_param) m_args.erase(m_args.begin() + i);
+
+            return { i };
         }
 
         if (arg.starts_with('-'))
             for (size_t j { 1 }; j < arg.length(); j++)
             {
                 if (arg[j] == '=') break;
-                if (arg[j] == short_flag)
-                {
-                    if (!accept_param) arg.erase(j, 1);
-                    if (arg == "-") m_args.erase(m_args.begin() + i);
+                if (arg[j] != short_flag) continue;
+                if (!accept_param) arg.erase(j, 1);
+                if (arg == "-") m_args.erase(m_args.begin() + i);
 
-                    return ArgIndex { i, j };
-                }
+                return ArgIndex { i, j };
             }
     }
 
@@ -55,10 +53,10 @@ auto
 ArgParser::is_arg(std::string_view long_arg, char short_arg, bool accept_param)
     -> std::optional<ArgIndex>
 {
-    if (m_args.size() >= 2
-        && (m_args[1] == long_arg || m_args[1] == std::string { short_arg }))
+    if (m_args.size() >= 1
+        && (m_args[0] == long_arg || m_args[0] == std::string { short_arg }))
     {
-        if (!accept_param) m_args.erase(m_args.begin() + 1);
+        if (!accept_param) m_args.erase(m_args.begin());
         return { 1 };
     }
 
@@ -67,7 +65,7 @@ ArgParser::is_arg(std::string_view long_arg, char short_arg, bool accept_param)
 
 
 auto
-ArgParser::get_args() const -> std::vector<std::string>
+ArgParser::get_args() const -> const std::vector<std::string> &
 {
     return m_args;
 }

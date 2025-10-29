@@ -138,7 +138,7 @@ namespace parser
                 text = "[NO DATA]";
             }
 
-            err.set_error_context(toplevel->source, toplevel->raw, real_idx,
+            err.set_error_context(tokens.source, toplevel->raw, real_idx,
                                   text.length());
             return err;
         }

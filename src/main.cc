@@ -4,10 +4,9 @@
 
 #include "arg_parser.hh"
 #include "command/runner.hh"
+#include "error.hh"
 #include "input/handler.hh"
-#include "parser/error.hh"
 #include "parser/parser.hh"
-#include "parser/types.hh"
 #include "print.hh"
 
 
@@ -17,13 +16,18 @@ namespace
     void
     print_help_message(std::string_view binary)
     {
-        io::println("Usage: {} <options {{params}}>", binary);
-        io::println("{}\n", std::string(binary.length() + 26, '-'));
+        io::println("Usage: {} <arg {{param}}> <flag {{param}}> <path>",
+                    binary);
+        io::println("{}\n", std::string(binary.length() + 44, '-'));
 
-        io::println("  --help    -h                show this message");
-        io::println("  --version -V                show version info");
+        io::println("  Args:");
+        io::println("    help    h                 show this message");
+        io::println("    version v                 show version info\n");
+        io::println("  Flags:");
         io::println("  --command -c {{command}}    run command then exit");
         io::println("  --config  -C {{path}}       specify config path");
+        io::println("\n  Parameter passed to <--command -c> must be covered");
+        io::println("  in a double quotation mark (\")");
         std::exit(0);
     }
 
@@ -35,6 +39,156 @@ namespace
         io::println("{} {}", APP_NAME, APP_VERSION);
         std::exit(0);
     }
+
+
+    [[nodiscard]]
+    auto
+    first_non_whitespace_is_ch(std::string_view str, char ch) -> bool
+    {
+        for (const char &c : str)
+            if (std::isspace(c) == 0) return c == ch;
+        return false;
+    }
+
+
+    [[nodiscard]]
+    auto
+    combine_argv(int &argc, char **&argv) -> std::string
+    {
+        std::ostringstream oss;
+
+        for (int i { 0 }; i < argc; i++)
+        {
+            oss << argv[i];
+            if (i < argc - 1) oss << ' ';
+        }
+
+        return oss.str();
+    }
+
+
+    template <typename... T_Args>
+    [[nodiscard]]
+    auto
+    make_error_message(const std::string &combined_argv,
+                       size_t             position,
+                       size_t             length,
+                       T_Args &&...args) -> std::string
+    {
+        auto info { error::Info(std::forward<T_Args>(args)...) };
+        info.set_error_context("argv", combined_argv, position, length);
+        return info.create_pretty_message();
+    }
+
+
+    auto
+    extract_quoted_param(const std::vector<std::string> &args, int start_idx)
+        -> std::string
+    {
+        std::string param { args[start_idx] };
+        size_t      first_quote { param.find('"') };
+        size_t      last_quote { param.rfind('"') };
+
+        if (last_quote == first_quote)
+        {
+            for (int i = start_idx + 1; i < (int)args.size(); ++i)
+            {
+                param += ' ' + args[i];
+                if (args[i].find('"') != std::string::npos)
+                {
+                    last_quote = param.rfind('"');
+                    break;
+                }
+            }
+        }
+
+        if (first_quote != std::string::npos && last_quote != std::string::npos
+            && first_quote != last_quote)
+            return param.substr(first_quote + 1, last_quote - first_quote - 1);
+        return {};
+    }
+
+
+    inline auto
+    starts_with_quote(const std::string &s) -> bool
+    {
+        auto it { s.begin() };
+        while (it != s.end() && (std::isspace(*it) != 0)) it++;
+        return it != s.end() && *it == '"';
+    }
+
+
+    [[nodiscard]]
+    auto
+    get_command_param(int                            &argc,
+                      char                         **&argv,
+                      const std::vector<std::string> &args,
+                      ArgIndex                        start,
+                      bool                           &err) -> std::string
+    {
+        const std::string  combined_argv { combine_argv(argc, argv) };
+        const std::string &flag_arg { args[start.arg_idx] };
+
+        const size_t flag_position { combined_argv.find(flag_arg) };
+        error::assert(flag_position != std::string::npos,
+                      std::format("flag \"{}\" is not found in argv \"{}\"",
+                                  flag_arg, combined_argv));
+
+        size_t first_quote { std::string::npos };
+
+        if (size_t eq_idx { flag_arg.find('=') }; eq_idx != std::string::npos)
+        {
+            std::string flag { flag_arg.substr(0, eq_idx) };
+
+            first_quote = flag_position + eq_idx + 1;
+            while (std::isspace(combined_argv[first_quote]) != 0) first_quote++;
+
+            if (combined_argv[first_quote] != '"')
+            {
+                err = true;
+                return make_error_message(
+                    combined_argv, flag_position, flag.length(), "no parameter",
+                    "No valid parameter passed to {}", flag);
+            }
+
+            size_t second_quote { combined_argv.find('"', first_quote + 1) };
+
+            if (second_quote != std::string::npos)
+                return combined_argv.substr(first_quote + 1,
+                                            second_quote - first_quote - 1);
+
+            err = true;
+            return make_error_message(
+                combined_argv, first_quote,
+                combined_argv.length() - first_quote, "unclosed quote",
+                "No closing quote found for parameter passed to {}", flag);
+        }
+
+        size_t i { flag_position + flag_arg.length() };
+        while (std::isspace(combined_argv[i]) != 0) i++;
+
+        if (combined_argv[i] != '"')
+        {
+            err = true;
+            return make_error_message(
+                combined_argv, flag_position, flag_arg.length(), "no parameter",
+                "No valid parameter passed to {}", flag_arg);
+        }
+
+        first_quote = i;
+        size_t second_quote { combined_argv.find('"', i + 1) };
+        if (second_quote == std::string::npos)
+        {
+            err = true;
+            return make_error_message(
+                combined_argv, first_quote,
+                combined_argv.length() - first_quote, "unclosed quote",
+                "No closing quote found for parameter passed to {}", flag_arg);
+        }
+
+        return combined_argv.substr(first_quote + 1,
+                                    second_quote - first_quote - 1);
+    }
 }
 
 
@@ -42,14 +196,14 @@ auto
 main(int argc, char **argv) -> int
 {
     cmd::fill_binary_path_list();
-    std::setlocale(LC_CTYPE, "");
+    std::setlocale(LC_ALL, "");
     Gio::init();
 
     ArgParser arg_parser { argc, argv };
-    if (arg_parser.is_flag("help", 'h', false)) print_help_message(*argv);
-    if (arg_parser.is_flag("version", 'V', false)) print_version_info();
+    if (arg_parser.is_arg("help", 'h', false)) print_help_message(*argv);
+    if (arg_parser.is_arg("version", 'v', false)) print_version_info();
 
-    auto command_flag { arg_parser.is_flag("command", 'c', false) };
+    auto command_flag { arg_parser.is_flag("command", 'c', true) };
 
     std::unique_ptr<std::istream> stream;
 
@@ -57,36 +211,39 @@ main(int argc, char **argv) -> int
         stream = std::make_unique<std::istream>(std::cin.rdbuf());
     else
     {
-        auto               args { arg_parser.get_args() };
-        std::ostringstream oss;
+        const auto &args { arg_parser.get_args() };
+        bool        err { false };
+        std::string param { get_command_param(argc, argv, args, *command_flag,
+                                              err) };
 
-        for (int i { command_flag->arg_idx }; (size_t)i < args.size(); i++)
+        if (err)
         {
-            if (i != command_flag->arg_idx) oss << ' ';
-            oss << args[i];
+            io::println("{}", param);
+            return EINVAL;
         }
 
-        stream = std::make_unique<std::istringstream>(oss.str());
+        stream = std::make_unique<std::istringstream>(param);
     }
 
     input::Handler input { stream.get() };
-    std::string    str;
+    std::string    text;
+    std::string    source { command_flag ? "argv" : "stdin" };
 
-    std::shared_ptr<parser::TokenGroup> tokens;
     while (!input.should_exit())
     {
-        input.read(str);
+        input.read(text);
 
         if (!command_flag)
         {
             if (input.should_exit()) break;
-            if (utils::str::is_empty(str)) continue;
+            if (utils::str::is_empty(text)) continue;
         }
 
-        tokens = parser::parse(str);
+        auto tokens { parser::parse(source, text) };
 
-        if (auto err { tokens->verify_syntax() }; err)
+        if (auto err { tokens->verify_syntax() })
             io::println("{}", err->create_pretty_message());
+
         io::println("{}", Json::to_string(tokens->to_json()));
     }
 

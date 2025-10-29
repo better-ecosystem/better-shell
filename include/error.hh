@@ -6,6 +6,10 @@
 #include "print.hh"
 #include "utils.hh"
 
+#ifndef NDEBUG
+#include <source_location>
+#endif
+
 
 namespace error
 {
@@ -33,7 +37,7 @@ namespace error
      * set @p T_Default to '\0', to disable default option
      */
     template <char T_Default, char... T_Options, typename... T_Args>
-    static auto
+    constexpr auto
     ask(std::string_view fmt, T_Args &&...args) -> char
     {
         std::string msg { std::vformat(fmt, std::make_format_args(args...)) };
@@ -95,6 +99,9 @@ namespace error
                                size_t             len);
 
 
+
+
+
         /**
          * creates a formatted pretty message containing the error
          * -------------------------------------------------------
@@ -115,4 +122,31 @@ namespace error
         std::spair<size_t>       m_error_pos;
         size_t                   m_error_len;
     };
+
+
+#ifndef NDEBUG
+    constexpr void
+    impl_assert(bool                        expr,
+                std::string_view            expr_string,
+                std::string_view            message,
+                const std::source_location &source
+                = std::source_location::current())
+    {
+        if (expr) return;
+
+        io::println(
+            std::cerr, "{}error:{}   assertion ({}{}{}) failed [{}:{}:{}]",
+            color::ERROR, color::RESET, color::MESSAGE, expr_string,
+            color::RESET, source.file_name(), source.line(), source.column());
+        io::println(std::cerr, "{}message:{} {}", color::MESSAGE, color::RESET,
+                    message);
+        std::exit(1);
+    }
+
+
+#define assert(expr, msg) impl_assert(expr, #expr, msg)
+#else
+#define impl_assert(...)
+#define assert(expr)
+#endif
 }

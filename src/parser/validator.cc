@@ -148,19 +148,19 @@ namespace parser
         handle_command_verification(TokenGroup &tokens, Token &front)
             -> std::pair<bool, std::optional<::error::Info>>
         {
-            const std::string *TEXT { front.get_data<std::string>() };
+            const std::string text { *front.get_data<std::string>() };
 
-            if (!cmd::BINARY_PATH_LIST.contains(*TEXT)
-                && !cmd::built_in::COMMANDS.contains(*TEXT))
+            if (!cmd::BINARY_PATH_LIST.contains(text)
+                && !cmd::built_in::COMMANDS.contains(text))
             {
                 auto err { error::create<error::Type::INVALID_COMMAND>(
-                    tokens, front, "command '{}' doesn't exist", *TEXT) };
+                    tokens, front, "command '{}' doesn't exist", text) };
 
                 int         smallest { std::numeric_limits<int>::max() };
                 std::string bin_name;
                 for (const auto &[name, func] : cmd::built_in::COMMANDS)
                 {
-                    int dist { utils::str::levenshtein_distance(name, *TEXT) };
+                    int dist { utils::str::levenshtein_distance(name, text) };
                     if (dist < smallest)
                     {
                         smallest = dist;
@@ -170,7 +170,7 @@ namespace parser
 
                 for (const auto &[name, path] : cmd::BINARY_PATH_LIST)
                 {
-                    int dist { utils::str::levenshtein_distance(name, *TEXT) };
+                    int dist { utils::str::levenshtein_distance(name, text) };
                     if (dist < smallest)
                     {
                         smallest = dist;
@@ -180,7 +180,7 @@ namespace parser
 
                 if (smallest > 2) return { true, err };
                 char res { ::error::ask<'y', 'y', 'n'>(
-                    "command '{}' doesn't exist, do you mean '{}'?", *TEXT,
+                    "command '{}' doesn't exist, do you mean '{}'?", text,
                     bin_name) };
 
                 if (res != 'y') return { true, err };
@@ -302,8 +302,8 @@ namespace parser
     {
         using enum TokenType;
 
-        auto err { verify_command(*this, this->tokens.front()) };
-        if (err) return err;
+        if (auto err { verify_command(*this, this->tokens.front()) })
+            return err;
 
         std::stack<size_t> bracket_stack;
         size_t             quote_idx { std::string::npos };

@@ -10,15 +10,16 @@ add_project_dependencies([
     dependency('glibmm-2.68'),
 ], language: 'cpp')
 
-add_project_arguments([
-    '-DAPP_VERSION="' + meson.project_version() + '"',
-    '-DAPP_NAME="'    + meson.project_name()    + '"',
+args = [
+    '-DAPP_VERSION="@0@"'.format(meson.project_version()),
+    '-DAPP_NAME="@0@"'.format(meson.project_name()),
     '-DAPP_ID="org.BetterDE.Better-Shell"',
-], language: 'cpp')
+]
 
 subdir('src')
 executable('better-shell', source_files,
            include_directories: include_directories('include',
                                                     'extern/utf8cpp',
                                                     'extern/utf8cpp/utf8'),
-           install: true)
+           install: true,
+           cpp_args: args)

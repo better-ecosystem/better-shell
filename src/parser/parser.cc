@@ -1,3 +1,4 @@
+#include <memory>
 #include <stack>
 
 #include "parser/parser.hh"
@@ -42,15 +43,15 @@ namespace parser
                         size_t              &i,
                         const std::string   &text)
         {
-            const size_t LEN { text.length() };
+            const size_t length { text.length() };
 
-            while (i < LEN && std::isspace(text[i]) != 0) i++;
-            if (i >= LEN) return;
+            while (i < length && std::isspace(text[i]) != 0) i++;
+            if (i >= length) return;
 
             if (char_belongs_to_token(text[i])) return;
 
             size_t start { i };
-            while (i < LEN && std::isspace(text[i]) == 0
+            while (i < length && std::isspace(text[i]) == 0
                    && !char_belongs_to_token(text[i]))
             {
                 i++;
@@ -85,18 +86,19 @@ namespace parser
             std::string content;
 
             if (quote_pos == std::string::npos)
-            {
                 content = text.substr(i);
-                tokens->add_token(TokenType::STRING_CONTENT, i, content);
-                i += content.length();
-                return true;
-            }
+            else
+                content = text.substr(i, quote_pos - i);
 
-            content = text.substr(i, quote_pos - i);
             if (!content.empty())
             {
                 tokens->add_token(TokenType::STRING_CONTENT, i, content);
                 i += content.length();
+
+                /* special case, which allows for
+                   error handling if theres no closing quote
+                */
+                if (quote_pos == std::string::npos) return true;
             }
 
             tokens->add_token(TokenType::STRING_QUOTE, i, "\"");
@@ -113,6 +115,7 @@ namespace parser
                             const std::string   &text) -> bool
         {
             if (text[i] != '{') return false;
+            if (text.length() > i + 1 && text[i + 1] == '{') return false;
 
             std::stack<size_t>  bracket_pos;
             std::vector<size_t> extra_closing;
@@ -146,7 +149,8 @@ namespace parser
                 std::string inner { utils::str::trim(text.substr(i)) };
                 if (!inner.empty())
                 {
-                    shared_tokens inner_tokens { parser::parse(inner, tokens) };
+                    shared_tokens inner_tokens { parser::parse(tokens->source,
+                                                               inner, tokens) };
                     tokens->add_token(TokenType::SUB_CONTENT, i, inner_tokens);
                 }
 
@@ -157,7 +161,8 @@ namespace parser
             std::string inner { utils::str::trim(text.substr(i, end_idx - i)) };
             if (!inner.empty())
             {
-                shared_tokens inner_tokens { parser::parse(inner, tokens) };
+                shared_tokens inner_tokens { parser::parse(tokens->source,
+                                                           inner, tokens) };
 
                 tokens->add_token(TokenType::SUB_CONTENT, i, inner_tokens);
             }
@@ -167,7 +172,8 @@ namespace parser
             for (const size_t &idx : extra_closing)
                 tokens->add_token(TokenType::SUB_BRACKET, idx, "}");
 
-            i = extra_closing.empty() ? end_idx : extra_closing.back();
+            i = (extra_closing.empty() ? end_idx + 1
+                                       : extra_closing.back() + 1);
             return true;
         }
 
@@ -242,10 +248,13 @@ namespace parser
 
 
     auto
-    parse(const std::string &text, const shared_tokens &parent) noexcept
-        -> shared_tokens
+    parse(std::string          input_source,
+          const std::string   &text,
+          const shared_tokens &parent) noexcept -> shared_tokens
     {
+        if (text.empty()) return nullptr;
         auto tokens { std::make_shared<TokenGroup>(text, parent) };
+        tokens->source = std::move(input_source);
 
         if (std::string cmd { get_command(text) }; !cmd.empty())
             tokens->add_token(TokenType::COMMAND, 0, cmd);
@@ -267,7 +276,7 @@ namespace parser
                 size_t end_idx { i + 1 };
                 while (end_idx < text.length()
                        && std::isspace(text[end_idx]) == 0
-                       && !char_belongs_to_token(end_idx))
+                       && !char_belongs_to_token(text[end_idx]))
                     end_idx++;
 
                 std::string param { text.substr(i, end_idx - i) };
