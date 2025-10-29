@@ -43,16 +43,6 @@ namespace
 
     [[nodiscard]]
     auto
-    first_non_whitespace_is_ch(std::string_view str, char ch) -> bool
-    {
-        for (const char &c : str)
-            if (std::isspace(c) == 0) return c == ch;
-        return false;
-    }
-
-
-    [[nodiscard]]
-    auto
     combine_argv(int &argc, char **&argv) -> std::string
     {
         std::ostringstream oss;
@@ -78,43 +68,6 @@ namespace
         auto info { error::Info(std::forward<T_Args>(args)...) };
         info.set_error_context("argv", combined_argv, position, length);
         return info.create_pretty_message();
-    }
-
-
-    auto
-    extract_quoted_param(const std::vector<std::string> &args, int start_idx)
-        -> std::string
-    {
-        std::string param { args[start_idx] };
-        size_t      first_quote { param.find('"') };
-        size_t      last_quote { param.rfind('"') };
-
-        if (last_quote == first_quote)
-        {
-            for (int i = start_idx + 1; i < (int)args.size(); ++i)
-            {
-                param += ' ' + args[i];
-                if (args[i].find('"') != std::string::npos)
-                {
-                    last_quote = param.rfind('"');
-                    break;
-                }
-            }
-        }
-
-        if (first_quote != std::string::npos && last_quote != std::string::npos
-            && first_quote != last_quote)
-            return param.substr(first_quote + 1, last_quote - first_quote - 1);
-        return {};
-    }
-
-
-    inline auto
-    starts_with_quote(const std::string &s) -> bool
-    {
-        auto it { s.begin() };
-        while (it != s.end() && (std::isspace(*it) != 0)) it++;
-        return it != s.end() && *it == '"';
     }
 
 

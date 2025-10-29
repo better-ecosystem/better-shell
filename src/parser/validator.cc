@@ -98,10 +98,10 @@ namespace parser
         handle_path_verification(TokenGroup &tokens, Token &front)
             -> std::pair<bool, std::optional<::error::Info>>
         {
-            const std::string *TEXT { front.get_data<std::string>() };
+            const std::string text { *front.get_data<std::string>() };
 
-            if (!TEXT->starts_with("./")) return { false, std::nullopt };
-            fs::path path { TEXT->substr(2) };
+            if (!text.starts_with("./")) return { false, std::nullopt };
+            fs::path path { text.substr(2) };
 
             if (fs::exists(path))
             {
@@ -110,35 +110,35 @@ namespace parser
                 if (!fs::is_regular_file(path))
                     return { true, error::create<error::Type::INVALID_COMMAND>(
                                        tokens, front, "path '{}' is not a file",
-                                       *TEXT) };
+                                       text) };
 
                 if (access(path.c_str(), X_OK) != 0)
                     return { true,
                              error::create<error::Type::INVALID_COMMAND>(
                                  tokens, front,
-                                 "path '{}' is not an executable", *TEXT) };
+                                 "path '{}' is not an executable", text) };
 
                 return { false, std::nullopt };
             }
 
             auto err { error::create<error::Type::INVALID_COMMAND>(
-                tokens, front, "executable path '{}' doesn't exist", *TEXT) };
+                tokens, front, "executable path '{}' doesn't exist", text) };
 
             fs::path match { find_nearest_looking_path(path) };
             if (match.empty()) return { false, err };
 
-            std::string text { "./"s + match.relative_path().string() };
+            std::string matched_path { "./"s + match.relative_path().string() };
 
             auto c { ::error::ask<'y', 'y', 'n'>(
-                "path '{}' not found, do you mean {}?", *TEXT, text) };
+                "path '{}' not found, do you mean {}?", text, matched_path) };
 
             if (c != 'y') return { false, err };
 
-            if (size_t it { tokens.raw.find(*TEXT) }; it != std::string::npos)
-                tokens.raw.replace(it, text.length(), text);
+            if (size_t it { tokens.raw.find(text) }; it != std::string::npos)
+                tokens.raw.replace(it, matched_path.length(), matched_path);
 
             path       = match;
-            front.data = text;
+            front.data = matched_path;
             return { true, std::nullopt };
         }
 
