@@ -12,7 +12,7 @@ namespace input::term
 {
 #define EOT 4
 
-    enum ReturnType : uint8_t
+    enum ReturnType : std::uint8_t
     {
         RETURN_CONTINUE,
         RETURN_NONE,
@@ -50,14 +50,14 @@ namespace input::term
 
         std::istream *m_stream;
         std::string   m_u8_buffer;
-        size_t        m_u8_expected_len;
+        std::size_t        m_u8_expected_len;
 
         std::string m_prompt;
 
         Cursor m_pos;
         bool   m_escaped;
 
-        size_t m_highlight_start_pos;
+        std::size_t m_highlight_start_pos;
 
         termios m_old_term;
         bool    m_is_term;

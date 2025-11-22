@@ -61,8 +61,8 @@ namespace
     [[nodiscard]]
     auto
     make_error_message(const std::string &combined_argv,
-                       size_t             position,
-                       size_t             length,
+                       std::size_t             position,
+                       std::size_t             length,
                        T_Args &&...args) -> std::string
     {
         auto info { error::Info(std::forward<T_Args>(args)...) };
@@ -82,14 +82,14 @@ namespace
         const std::string  combined_argv { combine_argv(argc, argv) };
         const std::string &flag_arg { args[start.arg_idx] };
 
-        const size_t flag_position { combined_argv.find(flag_arg) };
+        const std::size_t flag_position { combined_argv.find(flag_arg) };
         error::assert(flag_position != std::string::npos,
                       std::format("flag \"{}\" is not found in argv \"{}\"",
                                   flag_arg, combined_argv));
 
-        size_t first_quote { std::string::npos };
+        std::size_t first_quote { std::string::npos };
 
-        if (size_t eq_idx { flag_arg.find('=') }; eq_idx != std::string::npos)
+        if (std::size_t eq_idx { flag_arg.find('=') }; eq_idx != std::string::npos)
         {
             std::string flag { flag_arg.substr(0, eq_idx) };
 
@@ -104,7 +104,7 @@ namespace
                     "No valid parameter passed to {}", flag);
             }
 
-            size_t second_quote { combined_argv.find('"', first_quote + 1) };
+            std::size_t second_quote { combined_argv.find('"', first_quote + 1) };
 
             if (second_quote != std::string::npos)
                 return combined_argv.substr(first_quote + 1,
@@ -117,7 +117,7 @@ namespace
                 "No closing quote found for parameter passed to {}", flag);
         }
 
-        size_t i { flag_position + flag_arg.length() };
+        std::size_t i { flag_position + flag_arg.length() };
         while (std::isspace(combined_argv[i]) != 0) i++;
 
         if (combined_argv[i] != '"')
@@ -129,7 +129,7 @@ namespace
         }
 
         first_quote = i;
-        size_t second_quote { combined_argv.find('"', i + 1) };
+        std::size_t second_quote { combined_argv.find('"', i + 1) };
         if (second_quote == std::string::npos)
         {
             err = true;

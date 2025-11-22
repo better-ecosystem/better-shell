@@ -14,7 +14,7 @@ namespace parser
 
     namespace error
     {
-        enum class Type : uint8_t
+        enum class Type : std::uint8_t
         {
             NONE,
 
@@ -73,6 +73,11 @@ namespace parser
         }
 
 
+        [[nodiscard]]
+        auto compute_real_index(const TokenGroup *group, const Token *tkn)
+            -> std::size_t;
+
+
         template <Type T_ErrorType, typename... T_Args>
         [[nodiscard]]
         auto
@@ -86,43 +91,6 @@ namespace parser
 
             auto it { std::ranges::find(tokens.tokens, token) };
             if (it == tokens.tokens.end()) return err;
-
-            auto real_idx { static_cast<size_t>(it - tokens.tokens.begin()) };
-
-            /* get the real index */
-            const TokenGroup *current { &tokens };
-            while (auto parent_ptr { current->parent.lock() })
-            {
-                /* in which index of tokens is the child token placed
-                   in the parent tokens list
-                */
-                size_t child_idx { 0 };
-                for (; child_idx < parent_ptr->tokens.size(); child_idx++)
-                {
-                    auto t { parent_ptr->tokens[child_idx] };
-                    if (t.type == TokenType::SUB_CONTENT)
-                    {
-                        const auto *sub { t.get_data<shared_tokens>() };
-                        if (sub != nullptr && sub->get() == current) break;
-                    }
-                }
-
-                /* now we need to add all of the string data's lengths until
-                   the child index
-                */
-                for (size_t i { 0 }; i < child_idx; ++i)
-                {
-                    Token &t { parent_ptr->tokens[i] };
-                    if (t.type == TokenType::SUB_CONTENT)
-                        real_idx
-                            += t.get_data<shared_tokens>()->get()->raw.length();
-                    else
-                        real_idx += t.get_data<std::string>()->length();
-                }
-
-                current = parent_ptr.get();
-                real_idx++;
-            }
 
             const auto *toplevel { tokens.get_toplevel() };
             std::string text;
@@ -138,7 +106,8 @@ namespace parser
                 text = "[NO DATA]";
             }
 
-            err.set_error_context(tokens.source, toplevel->raw, real_idx,
+            err.set_error_context(tokens.source, toplevel->raw,
+                                  compute_real_index(&tokens, &token),
                                   text.length());
             return err;
         }

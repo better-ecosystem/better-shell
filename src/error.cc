@@ -6,8 +6,8 @@ using error::Info;
 void
 Info::set_error_context(const std::string &input_source,
                         const std::string &text,
-                        size_t             idx,
-                        size_t             len)
+                        std::size_t             idx,
+                        std::size_t             len)
 {
     if (input_source.empty() || text.empty()) return;
 
@@ -39,11 +39,11 @@ Info::create_pretty_message(bool force) -> std::string
         += std::format("  ╭─[{}{}{}: {}:{}]\n", color::MESSAGE, m_input_source,
                        color::RESET, m_error_pos.first, m_error_pos.second);
 
-    for (size_t i { 0 }; i <= m_error_pos.first && i < m_error_lines.size();
+    for (std::size_t i { 0 }; i <= m_error_pos.first && i < m_error_lines.size();
          i++)
     {
         /* get the length of right-padding */
-        size_t padding_len { m_error_pos.second + m_msg.length()
+        std::size_t padding_len { m_error_pos.second + m_msg.length()
                              - m_error_lines[i].length() };
 
         auto background { i % 2 == 0 ? color::LINE_BG : color::LINE_BG_ALT };
@@ -69,7 +69,7 @@ Info::create_pretty_message(bool force) -> std::string
     }
 
     m_pretty_msg += "  ╰─";
-    for (auto _ : utils::range<size_t>(0, m_error_pos.second))
+    for (auto _ : utils::range<std::size_t>(0, m_error_pos.second))
         m_pretty_msg.append("─");
 
     RUN_FUNC_N(m_msg.length(), m_pretty_msg.append, _ % 2 ? "·" : " ");

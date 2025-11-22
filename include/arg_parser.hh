@@ -11,8 +11,10 @@ struct ArgIndex
     std::optional<int> char_idx;
 
 
-    constexpr ArgIndex(size_t i, size_t j) : arg_idx(i), char_idx(j) {}
-    constexpr ArgIndex(size_t i) : arg_idx(i), char_idx(std::nullopt) {}
+    constexpr ArgIndex(std::size_t i, std::size_t j) : arg_idx(i), char_idx(j)
+    {
+    }
+    constexpr ArgIndex(std::size_t i) : arg_idx(i), char_idx(std::nullopt) {}
 };
 
 
@@ -61,12 +63,12 @@ public:
     auto
     get_parameter(const ArgIndex &index) -> std::optional<Tp>
     {
-        const auto arg_idx { static_cast<size_t>(index.arg_idx) };
+        const auto arg_idx { static_cast<std::size_t>(index.arg_idx) };
         if (arg_idx >= m_args.size()) return std::nullopt;
 
         if (!index.char_idx)
         {
-            if (size_t pos { m_args[arg_idx].find('=') };
+            if (std::size_t pos { m_args[arg_idx].find('=') };
                 pos != std::string::npos)
             {
                 std::string param { m_args[arg_idx].substr(pos + 1) };
@@ -93,7 +95,7 @@ public:
             return std::nullopt;
         }
 
-        const auto char_idx { static_cast<size_t>(*index.char_idx) };
+        const auto char_idx { static_cast<std::size_t>(*index.char_idx) };
 
         std::string &arg { m_args[arg_idx] };
 

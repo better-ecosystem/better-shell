@@ -42,7 +42,7 @@ Cursor::handle_home_end(int type, const std::string &str, bool ctrl) -> bool
         else if (type == 1) /* end */
         {
             std::string  line { utils::str::get_line(str, y) };
-            const size_t LEN { line.length() };
+            const std::size_t LEN { line.length() };
 
             while (x < LEN)
             {
@@ -59,17 +59,17 @@ Cursor::handle_home_end(int type, const std::string &str, bool ctrl) -> bool
 
 
 auto
-Cursor::get_string_idx(const std::string &str) const -> size_t
+Cursor::get_string_idx(const std::string &str) const -> std::size_t
 {
-    size_t line { 0 };
-    size_t char_x { 0 };
+    std::size_t line { 0 };
+    std::size_t char_x { 0 };
 
-    for (size_t i = 0; i < str.size();)
+    for (std::size_t i = 0; i < str.size();)
     {
         if (line == y && char_x == x) return i;
 
         unsigned char c { static_cast<unsigned char>(str[i]) };
-        const size_t  advance { utils::utf8::get_expected_length(c) };
+        const std::size_t  advance { utils::utf8::get_expected_length(c) };
 
         if (c == '\n')
         {
@@ -96,11 +96,11 @@ auto
 Cursor::handle_right_arrow(const std::string &str, bool ctrl) -> bool
 {
     std::string  line { utils::str::get_line(str, y) };
-    const size_t LEN { line.length() };
+    const std::size_t LEN { line.length() };
 
     if (ctrl)
     {
-        uint32_t start_x { x };
+        std::uint32_t start_x { x };
         x = utils::str::move_idx_to_direction(line, x, 1);
 
         max_x = x;
@@ -134,7 +134,7 @@ Cursor::handle_left_arrow(const std::string &str, bool ctrl) -> bool
 
     if (ctrl)
     {
-        uint32_t start_x { x };
+        std::uint32_t start_x { x };
         x = utils::str::move_idx_to_direction(line, x, -1);
 
         max_x = x;

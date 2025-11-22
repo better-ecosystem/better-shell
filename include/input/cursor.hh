@@ -16,11 +16,11 @@ namespace input::term
         };
 
 
-        uint32_t x { 0 };
-        uint32_t y { 0 };
+        std::uint32_t x { 0 };
+        std::uint32_t y { 0 };
 
-        uint32_t last_x { 0 };
-        uint32_t max_x { 0 };
+        std::uint32_t last_x { 0 };
+        std::uint32_t max_x { 0 };
 
 
         [[nodiscard]]
@@ -55,7 +55,7 @@ namespace input::term
          *        going out of range from the string's length.
          */
         [[nodiscard]]
-        auto get_string_idx(const std::string &str) const -> size_t;
+        auto get_string_idx(const std::string &str) const -> std::size_t;
 
     private:
         [[nodiscard]]

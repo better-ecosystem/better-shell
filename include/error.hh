@@ -95,11 +95,8 @@ namespace error
          */
         void set_error_context(const std::string &input_source,
                                const std::string &text,
-                               size_t             idx,
-                               size_t             len);
-
-
-
+                               std::size_t        idx,
+                               std::size_t        len);
 
 
         /**
@@ -119,8 +116,8 @@ namespace error
 
         std::vector<std::string> m_error_lines;
         std::string              m_input_source;
-        std::spair<size_t>       m_error_pos;
-        size_t                   m_error_len;
+        std::spair<std::size_t>  m_error_pos;
+        std::size_t              m_error_len;
     };
 
 

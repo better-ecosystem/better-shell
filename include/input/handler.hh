@@ -24,7 +24,7 @@ namespace input
         /**
          * reads a character and returns the size of the string
          */
-        auto read(std::string &str) -> size_t;
+        auto read(std::string &str) -> std::size_t;
 
 
         /**

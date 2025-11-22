@@ -46,14 +46,14 @@ namespace utils
          * leading byte
          */
         [[nodiscard]]
-        auto get_expected_length(const unsigned char &leading) -> size_t;
+        auto get_expected_length(const unsigned char &leading) -> std::size_t;
 
 
         /**
          * this function is an std::string::length() wrapper that is UTF-8 aware
          */
         [[nodiscard]]
-        auto length(const std::string &str) -> size_t;
+        auto length(const std::string &str) -> std::size_t;
     }
 
 
@@ -75,7 +75,7 @@ namespace utils
          * the number of lines inside @p str
          */
         [[nodiscard]]
-        auto get_line(const std::string &str, size_t idx) -> std::string;
+        auto get_line(const std::string &str, std::size_t idx) -> std::string;
 
 
         /**
@@ -93,8 +93,8 @@ namespace utils
          */
         [[nodiscard]]
         auto move_idx_to_direction(const std::string &str,
-                                   size_t             index,
-                                   int                direction) -> size_t;
+                                   std::size_t        index,
+                                   int                direction) -> std::size_t;
 
 
         /**
@@ -108,7 +108,7 @@ namespace utils
          * splits a string at @p pos , excluding @p pos
          */
         [[nodiscard]]
-        auto split(const std::string &str, size_t pos)
+        auto split(const std::string &str, std::size_t pos)
             -> std::pair<std::string, std::string>;
 
 
@@ -131,8 +131,8 @@ namespace utils
          * get the line and column of a string @p text from an index @p index
          */
         [[nodiscard]]
-        auto index_to_line_column(const std::string &text, size_t index)
-            -> std::spair<size_t>;
+        auto index_to_line_column(const std::string &text, std::size_t index)
+            -> std::spair<std::size_t>;
     }
 
 

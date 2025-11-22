@@ -21,12 +21,12 @@ namespace utils::str
 
 
     auto
-    get_line(const std::string &str, size_t idx) -> std::string
+    get_line(const std::string &str, std::size_t idx) -> std::string
     {
-        size_t line_start { 0 };
-        size_t line_no { 0 };
+        std::size_t line_start { 0 };
+        std::size_t line_no { 0 };
 
-        for (size_t i { 0 }; i <= str.size(); i++)
+        for (std::size_t i { 0 }; i <= str.size(); i++)
             if (i == str.size() || str[i] == '\n')
             {
                 if (line_no == idx)
@@ -49,10 +49,10 @@ namespace utils::str
 
 
     auto
-    move_idx_to_direction(const std::string &str, size_t index, int direction)
-        -> size_t
+    move_idx_to_direction(const std::string &str, std::size_t index, int direction)
+        -> std::size_t
     {
-        const size_t LEN { str.length() };
+        const std::size_t LEN { str.length() };
 
         if (direction == -1 && index > 0)
         {
@@ -90,7 +90,7 @@ namespace utils::str
 
 
     auto
-    split(const std::string &str, size_t pos)
+    split(const std::string &str, std::size_t pos)
         -> std::pair<std::string, std::string>
     {
         if (pos == std::string::npos) return { str, "" };
@@ -114,16 +114,16 @@ namespace utils::str
     auto
     levenshtein_distance(const std::string &a, const std::string &b) -> int
     {
-        const std::spair<size_t>      LEN { a.length(), b.length() };
+        const std::spair<std::size_t>      LEN { a.length(), b.length() };
         std::vector<std::vector<int>> dp { LEN.first + 1,
                                            std::vector<int>(LEN.second + 1) };
 
-        for (size_t i { 0 }; i <= LEN.first; i++) dp[i][0] = i;
-        for (size_t j { 0 }; j <= LEN.second; j++) dp[0][j] = j;
+        for (std::size_t i { 0 }; i <= LEN.first; i++) dp[i][0] = i;
+        for (std::size_t j { 0 }; j <= LEN.second; j++) dp[0][j] = j;
 
-        for (size_t i { 1 }; i <= LEN.first; i++)
+        for (std::size_t i { 1 }; i <= LEN.first; i++)
         {
-            for (size_t j { 1 }; j <= LEN.second; j++)
+            for (std::size_t j { 1 }; j <= LEN.second; j++)
             {
                 int cost { (a[i - 1] == b[j - 1]) ? 0 : 1 };
                 dp[i][j] = std::min({ dp[i - 1][j] + 1, dp[i][j - 1] + 1,
@@ -136,13 +136,13 @@ namespace utils::str
 
 
     auto
-    index_to_line_column(const std::string &text, size_t index)
-        -> std::spair<size_t>
+    index_to_line_column(const std::string &text, std::size_t index)
+        -> std::spair<std::size_t>
     {
-        size_t line { 0 };
-        size_t col { 0 };
+        std::size_t line { 0 };
+        std::size_t col { 0 };
 
-        size_t i { 0 };
+        std::size_t i { 0 };
         while (i < index && i < text.length())
         {
             if (text[i] == '\n')

@@ -12,136 +12,54 @@ namespace Json { class Value; }
 
 namespace parser
 {
-    enum class TokenType : uint8_t
+    enum class TokenType : std::uint8_t
     {
-        /**
-         * holds the command to be ran, must be the first
-         * word in a scope
-         */
+        /* always occupy the first token of a TokenGroup */
         COMMAND,
 
-        /**
-         * the argument to a command is the direct word that comes after it
-         */
+        /* any token that are not of other token type
+         * that sits in front of a command token */
         ARGUMENT,
 
-        /**
-         * flags are strings that starts with dashes, flag can be either
-         * a long flag (starts with 2 dashes '--'), or
-         * a short flag (starts with 1 dash '-')
-         */
+        /* a token that starts with a dash (-) or a double-dash (--) */
         FLAG,
 
-        /**
-         * the parameters given to a flag/argument
-         */
+        /* any token that are not of other token type
+         * that sits in front of a FLAG or ARGUMENT token,
+         * or a string that is in front of a '=' after a FLAG or ARGUMENT token
+        */
         PARAMETER,
 
-        /**
-         * operators, this includes commas, stars and such
-         */
+        /* special character or string */
         OPERATOR,
-
         UNKNOWN,
 
-        /* SUBSTITUTION TOKEN TYPE */
-
-        /**
-         * the bracket of the substitution, can either be OPEN or CLOSE,
-         * on OPEN the text shall contain {,
-         * and on CLOSE it will only contain }
-         */
+        /* '{}'
+         * a bracket that encloses a SUB_CONTENT */
         SUB_BRACKET,
 
-        /**
-         * the content of the substitution, which will contain another tokens
-         */
+        /* the content of a substitution */
         SUB_CONTENT,
 
-        /* STRING TOKEN TYPE */
-
-        /**
-         * the quote of the string, should be "
-         */
+        /* '/"
+         * a quote (either single or double) that encloses a STRING_CONTENT */
         STRING_QUOTE,
 
-        /**
-         * the content of the string, not including the quotation marks.
-         */
+        /* the content of a string */
         STRING_CONTENT,
+
+        /* '{{}}'
+         * a bracket that encloses an ARITHMETIC_EXPRESSION */
+        ARITHMETIC_BRACKET,
+
+        /* an arithmetic expression (1 + 1, 3^4, ...) */
+        ARITHMETIC_EXPRESSION,
     };
 
 
-    enum class OperatorType : uint8_t
+    enum class OperatorType : std::uint8_t
     {
-        /** ,
-         * works like how zsh treats commas i.e., it only works
-         * when used inside a substitute content
-         */
-        COMMA,
-
-
-        /** *
-         * used for globbing, i.e., works the same way like it does in other
-         * shells, \* will make * become just a star, and if "calc"
-         * is the command for the current TokenGroup will make it turn
-         * into just a regular star
-         */
-        WILDCARD,
-
-
-        /** proc | proc
-         * redirects the stdout of a process on the left hand side
-         * to the stdin of the process on the right hand side
-         */
         PIPE,
-
-
-        /** $name
-         * substitute the space occupied by the string "$name" to be the
-         * variable's value
-         */
-        SUBSTITUTE,
-
-
-        /** bool && bool
-         * returns true when left hand side and right hand side is true
-         */
-        LOGICAL_AND,
-
-
-        /** bool || bool
-         * returns true when either left hand side and right hand side is true
-         */
-        LOGICAL_OR,
-
-
-        /** !bool
-         * turns true into false, false into true
-         */
-        LOGICAL_NOT,
-
-
-        /** ;
-         * used to separate tokens, they're ran after one another
-         */
-        SEPARATOR_SEQUENCE,
-
-
-        /** :
-         * used to separate tokens, they're ran simultaneously on different
-         * threads, output will be shown like
-         *
-         * proccess stderr/stdout [idx]: ...
-         *
-         * and for exit code, it will all be shown after every process
-         * has finished, shown like
-         *
-         * proccess code [idx]: N
-         * proccess code [idy]: N
-         * proccess code [idz]: N
-         */
-        SEPARATOR_MULTI,
     };
 
 
@@ -150,16 +68,19 @@ namespace parser
     {
         switch (t)
         {
-        case TokenType::COMMAND:        return "Type::COMMAND";
-        case TokenType::ARGUMENT:       return "Type::ARGUMENT";
-        case TokenType::FLAG:           return "Type::FLAG";
-        case TokenType::PARAMETER:      return "Type::PARAMETER";
-        case TokenType::OPERATOR:       return "Type::OPERATOR";
-        case TokenType::UNKNOWN:        return "Type::UNKNOWN";
-        case TokenType::SUB_BRACKET:    return "Type::SUB_BRACKET";
-        case TokenType::SUB_CONTENT:    return "Type::SUB_CONTENT";
-        case TokenType::STRING_QUOTE:   return "Type::STRING_QUOTE";
-        case TokenType::STRING_CONTENT: return "Type::STRING_CONTENT";
+        case TokenType::COMMAND:            return "Type::COMMAND";
+        case TokenType::ARGUMENT:           return "Type::ARGUMENT";
+        case TokenType::FLAG:               return "Type::FLAG";
+        case TokenType::PARAMETER:          return "Type::PARAMETER";
+        case TokenType::OPERATOR:           return "Type::OPERATOR";
+        case TokenType::UNKNOWN:            return "Type::UNKNOWN";
+        case TokenType::SUB_BRACKET:        return "Type::SUB_BRACKET";
+        case TokenType::SUB_CONTENT:        return "Type::SUB_CONTENT";
+        case TokenType::STRING_QUOTE:       return "Type::STRING_QUOTE";
+        case TokenType::STRING_CONTENT:     return "Type::STRING_CONTENT";
+        case TokenType::ARITHMETIC_BRACKET: return "Type::ARITHMETIC_BRACKET";
+        case TokenType::ARITHMETIC_EXPRESSION:
+            return "Type::ARITHMETIC_EXPRESSION";
         };
         return "Type::UNKNOWN";
     }
@@ -170,17 +91,9 @@ namespace parser
     {
         switch (t)
         {
-        case OperatorType::COMMA:              return "Op::COMMA";
-        case OperatorType::WILDCARD:           return "Op::WILDCARD";
-        case OperatorType::PIPE:               return "Op::PIPE";
-        case OperatorType::SUBSTITUTE:         return "Op::SUBSTITUTE";
-        case OperatorType::LOGICAL_AND:        return "Op::LOGICAL_AND";
-        case OperatorType::LOGICAL_OR:         return "Op::LOGICAL_OR";
-        case OperatorType::LOGICAL_NOT:        return "Op::LOGICAL_NOT";
-        case OperatorType::SEPARATOR_SEQUENCE: return "Op::SEPARATOR_SEQUENCE";
-        case OperatorType::SEPARATOR_MULTI:    return "Op::SEPARATOR_MULTI";
+        case OperatorType::PIPE: return "Operator::PIPE";
         }
-        return "Op::UNKNOWN";
+        return "Operator::UNKNOWN";
     }
 
 
@@ -271,7 +184,7 @@ namespace parser
         /**
          * stores the first byte of @e data 's index from the parsed string
          */
-        size_t index;
+        std::size_t index;
 
 
         /**
@@ -292,8 +205,8 @@ namespace parser
 
 
         Token() = default;
-        Token(TokenType type, size_t idx, std::string data);
-        Token(TokenType type, size_t idx, const shared_tokens &data);
+        Token(TokenType type, std::size_t idx, std::string data);
+        Token(TokenType type, std::size_t idx, const shared_tokens &data);
 
 
         [[nodiscard]]

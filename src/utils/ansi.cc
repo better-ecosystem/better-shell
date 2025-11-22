@@ -16,7 +16,7 @@ namespace utils::ansi
     auto
     is_ctrl_pressed(const std::string &seq) -> bool
     {
-        size_t idx { seq.find_first_of(';') };
+        std::size_t idx { seq.find_first_of(';') };
         if (idx == std::string::npos) return false;
         return seq.at(idx + 1) == '5' || seq.at(idx + 1) == '6';
     }
@@ -25,7 +25,7 @@ namespace utils::ansi
     auto
     is_shift_pressed(const std::string &seq) -> bool
     {
-        size_t idx { seq.find_first_of(';') };
+        std::size_t idx { seq.find_first_of(';') };
         if (idx == std::string::npos) return false;
         return seq.at(idx + 1) == '2' || seq.at(idx + 1) == '6';
     }

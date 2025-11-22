@@ -67,13 +67,13 @@ namespace parser
     }
 
 
-    Token::Token(TokenType type, size_t idx, std::string data)
+    Token::Token(TokenType type, std::size_t idx, std::string data)
         : type(type), index(idx), data(std::move(data))
     {
     }
 
 
-    Token::Token(TokenType type, size_t idx, const shared_tokens &data)
+    Token::Token(TokenType type, std::size_t idx, const shared_tokens &data)
         : type(type), index(idx), data(data)
     {
     }

@@ -14,7 +14,7 @@ Handler::Handler(std::istream *stream)
 
 
 auto
-Handler::read(std::string &str) -> size_t
+Handler::read(std::string &str) -> std::size_t
 {
     str.clear();
     std::streambuf *pbuf { m_stream->rdbuf() };

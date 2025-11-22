@@ -40,17 +40,17 @@ namespace parser
 
         void
         handle_argument(const shared_tokens &tokens,
-                        size_t              &i,
+                        std::size_t              &i,
                         const std::string   &text)
         {
-            const size_t length { text.length() };
+            const std::size_t length { text.length() };
 
             while (i < length && std::isspace(text[i]) != 0) i++;
             if (i >= length) return;
 
             if (char_belongs_to_token(text[i])) return;
 
-            size_t start { i };
+            std::size_t start { i };
             while (i < length && std::isspace(text[i]) == 0
                    && !char_belongs_to_token(text[i]))
             {
@@ -60,7 +60,7 @@ namespace parser
             if (start < i)
             {
                 std::string  raw { text.substr(start, i - start) };
-                const size_t eq_pos { raw.find('=') };
+                const std::size_t eq_pos { raw.find('=') };
                 auto [argument, param] { utils::str::split(raw, eq_pos) };
 
                 tokens->add_token(TokenType::FLAG, start, argument);
@@ -74,7 +74,7 @@ namespace parser
         [[nodiscard]]
         auto
         handle_string(const shared_tokens &tokens,
-                      size_t              &i,
+                      std::size_t              &i,
                       const std::string   &text) -> bool
         {
             if (text[i] != '"') return false;
@@ -82,7 +82,7 @@ namespace parser
             tokens->add_token(TokenType::STRING_QUOTE, i, "\"");
             i++;
 
-            size_t      quote_pos { text.find('"', i) };
+            std::size_t      quote_pos { text.find('"', i) };
             std::string content;
 
             if (quote_pos == std::string::npos)
@@ -111,20 +111,20 @@ namespace parser
         [[nodiscard]]
         auto
         handle_substitution(const shared_tokens &tokens,
-                            size_t              &i,
+                            std::size_t              &i,
                             const std::string   &text) -> bool
         {
             if (text[i] != '{') return false;
             if (text.length() > i + 1 && text[i + 1] == '{') return false;
 
-            std::stack<size_t>  bracket_pos;
-            std::vector<size_t> extra_closing;
-            size_t              end_idx { std::string::npos };
+            std::stack<std::size_t>  bracket_pos;
+            std::vector<std::size_t> extra_closing;
+            std::size_t              end_idx { std::string::npos };
             bracket_pos.emplace(i);
 
             tokens->add_token(TokenType::SUB_BRACKET, i++, "{");
 
-            for (size_t j { i }; j < text.length(); j++)
+            for (std::size_t j { i }; j < text.length(); j++)
             {
                 if (text[j] == '{')
                 {
@@ -169,7 +169,7 @@ namespace parser
 
             tokens->add_token(TokenType::SUB_BRACKET, end_idx, "}");
 
-            for (const size_t &idx : extra_closing)
+            for (const std::size_t &idx : extra_closing)
                 tokens->add_token(TokenType::SUB_BRACKET, idx, "}");
 
             i = (extra_closing.empty() ? end_idx + 1
@@ -181,18 +181,18 @@ namespace parser
         [[nodiscard]]
         auto
         handle_flag(const shared_tokens &tokens,
-                    size_t              &i,
+                    std::size_t              &i,
                     const std::string   &text) -> bool
         {
             if (i > 0 && (text[i] != '-' || std::isspace(text[i - 1]) == 0))
                 return false;
 
-            const size_t LEN { text.length() };
+            const std::size_t LEN { text.length() };
 
             /* Handles long arg */
             if (i + 1 < LEN && text[i + 1] == '-')
             {
-                size_t len { 2 };
+                std::size_t len { 2 };
                 bool   after_eq { false };
 
                 while (i + len < LEN && std::isspace(text[i + len]) == 0)
@@ -205,7 +205,7 @@ namespace parser
                 }
 
                 const std::string raw { text.substr(i, len) };
-                const size_t      eq_pos { raw.find('=') };
+                const std::size_t      eq_pos { raw.find('=') };
                 auto [flag, param] { utils::str::split(raw, eq_pos) };
 
                 tokens->add_token(TokenType::FLAG, i, flag);
@@ -217,7 +217,7 @@ namespace parser
             }
 
             /* Handle clustered short options: -abc -> -a, -b, -c */
-            size_t len { 1 };
+            std::size_t len { 1 };
             while (i + len < LEN && std::isspace(text[i + len]) == 0
                    && text[i + len] != '=')
             {
@@ -229,7 +229,7 @@ namespace parser
             {
                 len++; /* for = */
 
-                size_t flag_len { 0 };
+                std::size_t flag_len { 0 };
                 while (i + len + flag_len < LEN
                        && std::isspace(text[i + len + flag_len]) == 0)
                 {
@@ -244,6 +244,53 @@ namespace parser
             i += len;
             return true;
         }
+
+
+        [[nodiscard]]
+        auto
+        handle_arithmetic(const shared_tokens &tokens,
+                          std::size_t              &i,
+                          const std::string   &text) -> bool
+        {
+            if (text[i] != '{'
+                || (i + 1 >= text.length() || text[i + 1] != '{'))
+                return false;
+
+            std::size_t end_idx { std::string::npos };
+
+            tokens->add_token(TokenType::ARITHMETIC_BRACKET, i, "{{");
+            i += 2;
+
+            for (std::size_t j { i }; j < text.length() - 1; ++j)
+                if (text[j] == '}')
+                {
+                    end_idx = j;
+                    break;
+                }
+
+            if (end_idx == std::string::npos)
+            {
+                std::string inner { utils::str::trim(text.substr(i)) };
+                if (!inner.empty())
+                    tokens->add_token(TokenType::ARITHMETIC_EXPRESSION, i,
+                                      inner);
+                i = text.length();
+                return true;
+            }
+
+            std::string inner { utils::str::trim(text.substr(i, end_idx - i)) };
+
+            if (!inner.empty())
+                tokens->add_token(TokenType::ARITHMETIC_EXPRESSION, i, inner);
+
+            std::string bracket { text[end_idx] };
+            if (text.length() > end_idx + 1) bracket += text[end_idx + 1];
+
+            tokens->add_token(TokenType::ARITHMETIC_BRACKET, end_idx, bracket);
+
+            i += inner.length() + bracket.length();
+            return true;
+        }
     }
 
 
@@ -252,13 +299,13 @@ namespace parser
           const std::string   &text,
           const shared_tokens &parent) noexcept -> shared_tokens
     {
-        if (text.empty()) return nullptr;
+        error::assert(!text.empty(), "input text is empty");
         auto tokens { std::make_shared<TokenGroup>(text, parent) };
         tokens->source = std::move(input_source);
 
         if (std::string cmd { get_command(text) }; !cmd.empty())
             tokens->add_token(TokenType::COMMAND, 0, cmd);
-        size_t i { tokens->tokens.back().get_data<std::string>()->length() };
+        std::size_t i { tokens->tokens.back().get_data<std::string>()->length() };
 
         handle_argument(tokens, i, text);
 
@@ -270,10 +317,11 @@ namespace parser
             if (handle_string(tokens, i, text)) continue;
             if (handle_substitution(tokens, i, text)) continue;
             if (handle_flag(tokens, i, text)) continue;
+            if (handle_arithmetic(tokens, i, text)) continue;
 
             if (!char_belongs_to_token(text[i]))
             {
-                size_t end_idx { i + 1 };
+                std::size_t end_idx { i + 1 };
                 while (end_idx < text.length()
                        && std::isspace(text[end_idx]) == 0
                        && !char_belongs_to_token(text[end_idx]))

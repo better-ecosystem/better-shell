@@ -11,7 +11,7 @@ ArgParser::is_flag(std::string_view long_flag,
                    char             short_flag,
                    bool             accept_param) -> std::optional<ArgIndex>
 {
-    for (size_t i { 0 }; i < m_args.size(); i++)
+    for (std::size_t i { 0 }; i < m_args.size(); i++)
     {
         std::string &arg { m_args[i] };
 
@@ -22,7 +22,7 @@ ArgParser::is_flag(std::string_view long_flag,
 
             if (!trimmed.starts_with(long_flag)) continue;
 
-            const size_t LONG_FLAG_LEN { long_flag.length() };
+            const std::size_t LONG_FLAG_LEN { long_flag.length() };
 
             if (trimmed.length() > LONG_FLAG_LEN
                 && trimmed[LONG_FLAG_LEN] != '=')
@@ -34,7 +34,7 @@ ArgParser::is_flag(std::string_view long_flag,
         }
 
         if (arg.starts_with('-'))
-            for (size_t j { 1 }; j < arg.length(); j++)
+            for (std::size_t j { 1 }; j < arg.length(); j++)
             {
                 if (arg[j] == '=') break;
                 if (arg[j] != short_flag) continue;

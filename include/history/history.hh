@@ -59,7 +59,7 @@ namespace history
         std::filesystem::path m_history_file;
 
         std::vector<std::string> m_lines;
-        size_t                   m_idx;
+        std::size_t              m_idx;
         bool                     m_first_run;
 
 

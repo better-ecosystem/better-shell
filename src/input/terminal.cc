@@ -27,7 +27,7 @@ namespace
     get_ansi_sequence(std::streambuf *sbuf) -> std::string
     {
         std::array<char, 8> buff;
-        for (size_t i { 0 }; i < buff.size(); i++)
+        for (std::size_t i { 0 }; i < buff.size(); i++)
         {
             int c { sbuf->sgetc() };
             if (c == EOT || c == EOF) return "";
@@ -55,7 +55,7 @@ namespace
         str = std::regex_replace(str, ansi_pattern, "");
         static const std::string reset_seq { "\033[0;0m" };
 
-        size_t pos;
+        std::size_t pos;
         while ((pos = str.find(reset_seq)) != std::string::npos)
             str.erase(pos, reset_seq.length());
     }
@@ -117,7 +117,7 @@ Handler::show_prompt()
     std::string HOME { utils::getenv("HOME") };
     std::string path { std::filesystem::current_path().string() };
 
-    size_t pos { path.find(HOME) };
+    std::size_t pos { path.find(HOME) };
     path.replace(pos, HOME.length(), "~");
     m_prompt = std::format("[{}]$ ", path);
 
@@ -202,7 +202,7 @@ Handler::handle(const unsigned char &current,
 void
 Handler::insert_char_to_cursor(std::string &str, unsigned char c)
 {
-    size_t idx { m_pos.get_string_idx(str) };
+    std::size_t idx { m_pos.get_string_idx(str) };
     str.insert(idx, 1, c);
 
     if (c == '\n')
@@ -218,7 +218,7 @@ Handler::insert_char_to_cursor(std::string &str, unsigned char c)
 void
 Handler::insert_u8_to_cursor(std::string &str)
 {
-    size_t idx { m_pos.get_string_idx(str) };
+    std::size_t idx { m_pos.get_string_idx(str) };
     str.insert(idx, m_u8_buffer);
 
     try
@@ -251,7 +251,7 @@ Handler::handle_backspace(std::string &str, bool ctrl)
 
     if (m_pos.x > 0)
     {
-        size_t idx { m_pos.get_string_idx(str) };
+        std::size_t idx { m_pos.get_string_idx(str) };
 
         if (!ctrl)
         {
@@ -265,7 +265,7 @@ Handler::handle_backspace(std::string &str, bool ctrl)
             return;
         }
 
-        size_t first { utils::str::move_idx_to_direction(str, idx, -1) };
+        std::size_t first { utils::str::move_idx_to_direction(str, idx, -1) };
 
         str.erase(first, idx - first);
         m_pos.x -= (idx - first);
@@ -347,12 +347,12 @@ Handler::handle_highlight(const std::string &str, const std::string &seq)
     }
 
     /* highlight from old position to new position */
-    size_t highlight { m_pos.get_string_idx(str) };
+    std::size_t highlight { m_pos.get_string_idx(str) };
 
     if (m_highlight_start_pos != highlight)
     {
-        size_t start { std::min(m_highlight_start_pos, highlight) };
-        size_t end { std::max(m_highlight_start_pos, highlight) };
+        std::size_t start { std::min(m_highlight_start_pos, highlight) };
+        std::size_t end { std::max(m_highlight_start_pos, highlight) };
 
         io::print("\033[s");
         io::print("\r\033[K");

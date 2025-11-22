@@ -65,7 +65,7 @@ namespace parser
                                    : std::filesystem::current_path()
             };
 
-            for (size_t i { 0 }; i < segments.size(); i++)
+            for (std::size_t i { 0 }; i < segments.size(); i++)
             {
                 std::vector<fs::path> children;
                 try
@@ -134,7 +134,7 @@ namespace parser
 
             if (c != 'y') return { false, err };
 
-            if (size_t it { tokens.raw.find(text) }; it != std::string::npos)
+            if (std::size_t it { tokens.raw.find(text) }; it != std::string::npos)
                 tokens.raw.replace(it, matched_path.length(), matched_path);
 
             path       = match;
@@ -208,8 +208,8 @@ namespace parser
         [[nodiscard]]
         auto
         check_string_quote_token(TokenGroup &tokens,
-                                 size_t     &quote_idx,
-                                 size_t idx) -> std::optional<::error::Info>
+                                 std::size_t     &quote_idx,
+                                 std::size_t idx) -> std::optional<::error::Info>
         {
             const auto &token { tokens.tokens[idx] };
 
@@ -237,8 +237,8 @@ namespace parser
         [[nodiscard]]
         auto
         check_substitution_bracket_token(TokenGroup         &tokens,
-                                         std::stack<size_t> &bracket_stack,
-                                         size_t              idx)
+                                         std::stack<std::size_t> &bracket_stack,
+                                         std::size_t              idx)
             -> std::optional<::error::Info>
         {
             const auto &token { tokens.tokens[idx] };
@@ -281,7 +281,7 @@ namespace parser
 
         [[nodiscard]]
         auto
-        check_parameter_token(TokenGroup &tokens, size_t idx)
+        check_parameter_token(TokenGroup &tokens, std::size_t idx)
             -> std::optional<::error::Info>
         {
             if (tokens.tokens[idx].type != TokenType::PARAMETER)
@@ -305,10 +305,10 @@ namespace parser
         if (auto err { verify_command(*this, this->tokens.front()) })
             return err;
 
-        std::stack<size_t> bracket_stack;
-        size_t             quote_idx { std::string::npos };
+        std::stack<std::size_t> bracket_stack;
+        std::size_t             quote_idx { std::string::npos };
 
-        for (size_t i { 1 }; i < this->tokens.size(); i++)
+        for (std::size_t i { 1 }; i < this->tokens.size(); i++)
         {
             if (this->tokens[i].type == SUB_CONTENT)
             {

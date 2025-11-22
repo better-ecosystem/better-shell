@@ -73,7 +73,7 @@ namespace utils
 
 
         auto
-        get_expected_length(const unsigned char &leading) -> size_t
+        get_expected_length(const unsigned char &leading) -> std::size_t
         {
             if ((leading & 0b10000000) == 0) return 1;
             if ((leading & 0b11100000) == 0b11000000) return 2;
@@ -84,16 +84,16 @@ namespace utils
 
 
         auto
-        length(const std::string &str) -> size_t
+        length(const std::string &str) -> std::size_t
         {
-            size_t length { 0 };
-            size_t i { 0 };
+            std::size_t length { 0 };
+            std::size_t i { 0 };
 
             while (i < str.size())
             {
                 auto c { static_cast<unsigned char>(str[i]) };
 
-                size_t char_len { get_expected_length(c) };
+                std::size_t char_len { get_expected_length(c) };
 
                 i += char_len;
                 if (i > str.size())
