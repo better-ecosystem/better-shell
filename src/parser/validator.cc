@@ -134,7 +134,8 @@ namespace parser
 
             if (c != 'y') return { false, err };
 
-            if (std::size_t it { tokens.raw.find(text) }; it != std::string::npos)
+            if (std::size_t it { tokens.raw.find(text) };
+                it != std::string::npos)
                 tokens.raw.replace(it, matched_path.length(), matched_path);
 
             path       = match;
@@ -207,9 +208,10 @@ namespace parser
 
         [[nodiscard]]
         auto
-        check_string_quote_token(TokenGroup &tokens,
-                                 std::size_t     &quote_idx,
-                                 std::size_t idx) -> std::optional<::error::Info>
+        check_string_quote_token(TokenGroup  &tokens,
+                                 std::size_t &quote_idx,
+                                 std::size_t  idx)
+            -> std::optional<::error::Info>
         {
             const auto &token { tokens.tokens[idx] };
 
@@ -236,7 +238,7 @@ namespace parser
 
         [[nodiscard]]
         auto
-        check_substitution_bracket_token(TokenGroup         &tokens,
+        check_substitution_bracket_token(TokenGroup              &tokens,
                                          std::stack<std::size_t> &bracket_stack,
                                          std::size_t              idx)
             -> std::optional<::error::Info>
@@ -294,6 +296,52 @@ namespace parser
             return error::create<error::Type::EMPTY_PARAM>(
                 tokens, tokens.tokens[idx], "parameter not given");
         }
+
+
+        [[nodiscard]]
+        auto
+        check_arithmetic_token(TokenGroup &tokens, std::size_t idx)
+            -> std::optional<::error::Info>
+        {
+            const auto &token { tokens.tokens[idx] };
+
+            if (token.type == TokenType::ARITHMETIC_BRACKET)
+            {
+                if (tokens.tokens.size() > idx + 1)
+                    if (tokens.tokens[idx + 1].type
+                        != TokenType::ARITHMETIC_EXPRESSION)
+                        return error::create<
+                            error::Type::EMPTY_ARITHMETIC_EXPRESSION>(
+                            tokens, tokens.tokens[idx],
+                            "arithmetic expression contains no expression");
+
+                if (tokens.tokens.size() > idx + 2)
+                {
+                    const auto &token { tokens.tokens[idx + 2] };
+
+                    if (token.type != TokenType::ARITHMETIC_BRACKET)
+                        return error::create<error::Type::UNCLOSED_BRACKET>(
+                            tokens, tokens.tokens[idx],
+                            "arithmetic expression's bracket is not closed");
+
+                    const std::string *bracket {
+                        token.get_data<std::string>()
+                    };
+
+                    if (bracket == nullptr || *bracket != "}}")
+                        return error::create<error::Type::INVALID_BRACKET>(
+                            tokens, tokens.tokens[idx + 2],
+                            "arithmetic expression must be closed with a "
+                            "\"}}}}\"");
+                }
+                else
+                    return error::create<error::Type::UNCLOSED_BRACKET>(
+                        tokens, tokens.tokens[idx],
+                        "unclosed arithmetic bracket");
+            }
+
+            return std::nullopt;
+        }
     }
 
 
@@ -326,6 +374,9 @@ namespace parser
             if (res) return res;
 
             res = check_substitution_bracket_token(*this, bracket_stack, i);
+            if (res) return res;
+
+            res = check_arithmetic_token(*this, i);
             if (res) return res;
         }
 

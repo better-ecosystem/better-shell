@@ -22,11 +22,14 @@ namespace parser
             UNCLOSED_QUOTE,
             UNCLOSED_BRACKET,
 
+            INVALID_BRACKET,
+
             CORRUPTED_TOKEN,
             CORRUPTED_TOKEN_ATTRIBUTE,
 
             UNSUPPORTED_OPERATION,
 
+            EMPTY_ARITHMETIC_EXPRESSION,
             EMPTY_SUBSTITUTION,
             EMPTY_STRING,
             EMPTY_PARAM,
@@ -51,6 +54,9 @@ namespace parser
             case Type::UNCLOSED_BRACKET:
                 return "parser::UNCLOSED_BRACKET";
 
+            case Type::INVALID_BRACKET:
+                return "parser::INVALID_BRACKET";
+
             case Type::CORRUPTED_TOKEN:
                 return "parser::CORRUPTED_TOKEN";
 
@@ -59,6 +65,9 @@ namespace parser
 
             case Type::UNSUPPORTED_OPERATION:
                 return "parser::UNSUPPORTED_OPERATION";
+
+            case Type::EMPTY_ARITHMETIC_EXPRESSION:
+                return "parser::EMPTY_ARITHMETIC_EXPRESSION";
 
             case Type::EMPTY_SUBSTITUTION:
                 return "parser::EMPTY_SUBSTITUTION";
