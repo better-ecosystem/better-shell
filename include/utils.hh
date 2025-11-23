@@ -146,7 +146,7 @@ namespace utils
      */
     namespace ansi
     {
-        // clang-format off
+        /* clang-format off */
         static inline constexpr std::array<std::array<int, 3>, 8> COLORS {{
             { 0,   0,   0   }, /* black   */
             { 255, 0,   0   }, /* red     */
@@ -159,7 +159,7 @@ namespace utils
         }};
 
         static inline constexpr std::array<int, 3> INVALID_COLOR { -1, -1, -1 };
-        // clang-format on
+        /* clang-format on */
 
 
         /**

@@ -12,22 +12,44 @@
 
 namespace
 {
+    constexpr std::string_view HELP_TEXT {
+        "{3}Usage:{8} {4}{0}{8} <arg {5}{{param}}{8}> <flag {5}{{param}}{8}> "
+        "<path>\n"
+        "{1}\n"
+        "\n"
+        "  {3}Args:{8}\n"
+        "      {4}help{8}     h                show this message\n"
+        "      {4}version{8}  v                show version info\n"
+        "\n"
+        "  {3}Flags:{8}\n"
+        "    {4}--command{8} -c {5}{{command}}{8}    run command then exit\n"
+        "    {4}--config{8}  -C {5}{{path}}{8}       specify config path\n"
+        "\n"
+        "  {6}Parameter passed to the `command` flag\n"
+        "    must be covered in a double quotation mark (\"){8}\n"
+        "\n"
+        "--------------------------------------------------\n"
+        "\n"
+        "  If the config path is not specified with the\n"
+        "  `config` flag, {4}{2}{8} will search the config in\n"
+        "  these places according to the specified order\n"
+        "\n"
+        "    1. $XDG_CONFIG_HOME/better/shell/config.bsh\n"
+        "    2. $HOME/better/shell/config.bsh\n"
+        "    3. $HOME/.better_shell.bsh\n"
+        "    4. /etc/better/shell/config.bsh\n"
+    };
+
+
     [[noreturn]]
     void
     print_help_message(std::string_view binary)
     {
-        io::println("Usage: {} <arg {{param}}> <flag {{param}}> <path>",
-                    binary);
-        io::println("{}\n", std::string(binary.length() + 44, '-'));
-
-        io::println("  Args:");
-        io::println("    help    h                 show this message");
-        io::println("    version v                 show version info\n");
-        io::println("  Flags:");
-        io::println("  --command -c {{command}}    run command then exit");
-        io::println("  --config  -C {{path}}       specify config path");
-        io::println("\n  Parameter passed to <--command -c> must be covered");
-        io::println("  in a double quotation mark (\")");
+        io::println(HELP_TEXT, binary, std::string(binary.length() + 44, '-'),
+                    APP_NAME, ANSI_RGB_FG(0, 200, 255),
+                    ANSI_RGB_FG(120, 220, 120), ANSI_RGB_FG(255, 200, 0),
+                    ANSI_RGB_FG(255, 140, 64), ANSI_RGB_FG(255, 140, 255),
+                    COLOR_RESET);
         std::exit(0);
     }
 
@@ -61,8 +83,8 @@ namespace
     [[nodiscard]]
     auto
     make_error_message(const std::string &combined_argv,
-                       std::size_t             position,
-                       std::size_t             length,
+                       std::size_t        position,
+                       std::size_t        length,
                        T_Args &&...args) -> std::string
     {
         auto info { error::Info(std::forward<T_Args>(args)...) };
@@ -89,7 +111,8 @@ namespace
 
         std::size_t first_quote { std::string::npos };
 
-        if (std::size_t eq_idx { flag_arg.find('=') }; eq_idx != std::string::npos)
+        if (std::size_t eq_idx { flag_arg.find('=') };
+            eq_idx != std::string::npos)
         {
             std::string flag { flag_arg.substr(0, eq_idx) };
 
@@ -104,7 +127,8 @@ namespace
                     "No valid parameter passed to {}", flag);
             }
 
-            std::size_t second_quote { combined_argv.find('"', first_quote + 1) };
+            std::size_t second_quote { combined_argv.find('"',
+                                                          first_quote + 1) };
 
             if (second_quote != std::string::npos)
                 return combined_argv.substr(first_quote + 1,

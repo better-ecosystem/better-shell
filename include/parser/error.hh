@@ -39,7 +39,7 @@ namespace parser
         constexpr auto
         type_to_string(Type t) -> std::string_view
         {
-            // clang-format off
+            /* clang-format off */
             switch (t)
             {
             case Type::NONE:
@@ -78,7 +78,7 @@ namespace parser
             case Type::EMPTY_PARAM:
                 return "parser::EMPTY_PARAM";
             }
-            // clang-format on
+            /* clang-format on */
         }
 
 
