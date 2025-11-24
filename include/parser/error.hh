@@ -30,6 +30,7 @@ namespace parser
             UNSUPPORTED_OPERATION,
 
             EMPTY_ARITHMETIC_EXPRESSION,
+            EMPTY_CONDITIONAL,
             EMPTY_SUBSTITUTION,
             EMPTY_STRING,
             EMPTY_PARAM,
@@ -68,6 +69,9 @@ namespace parser
 
             case Type::EMPTY_ARITHMETIC_EXPRESSION:
                 return "parser::EMPTY_ARITHMETIC_EXPRESSION";
+
+            case Type::EMPTY_CONDITIONAL:
+                return "parser::EMPTY_CONDITIONAL";
 
             case Type::EMPTY_SUBSTITUTION:
                 return "parser::EMPTY_SUBSTITUTION";

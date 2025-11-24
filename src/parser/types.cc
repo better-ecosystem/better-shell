@@ -39,6 +39,7 @@ namespace parser
 
             j_token["data"]
                 = token.type == TokenType::SUB_CONTENT
+                       || token.type == TokenType::CONDITIONAL_CONTENT
                     ? token.get_data<shared_tokens>()->get()->to_json()
                     : *token.get_data<std::string>();
             j_token["index"] = token.index;

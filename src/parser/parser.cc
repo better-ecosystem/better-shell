@@ -23,7 +23,7 @@ namespace parser
         char_belongs_to_token(char ch) -> bool
         {
             return ch == '-' || ch == '{' || ch == '"' || ch == '!' || ch == '|'
-                || ch == '&' || ch == ';' || ch == ':';
+                || ch == '&' || ch == ';' || ch == ':' || ch == '(';
         }
 
 
@@ -40,7 +40,7 @@ namespace parser
 
         void
         handle_argument(const shared_tokens &tokens,
-                        std::size_t              &i,
+                        std::size_t         &i,
                         const std::string   &text)
         {
             const std::size_t length { text.length() };
@@ -59,7 +59,7 @@ namespace parser
 
             if (start < i)
             {
-                std::string  raw { text.substr(start, i - start) };
+                std::string       raw { text.substr(start, i - start) };
                 const std::size_t eq_pos { raw.find('=') };
                 auto [argument, param] { utils::str::split(raw, eq_pos) };
 
@@ -74,7 +74,7 @@ namespace parser
         [[nodiscard]]
         auto
         handle_string(const shared_tokens &tokens,
-                      std::size_t              &i,
+                      std::size_t         &i,
                       const std::string   &text) -> bool
         {
             if (text[i] != '"') return false;
@@ -82,7 +82,7 @@ namespace parser
             tokens->add_token(TokenType::STRING_QUOTE, i, "\"");
             i++;
 
-            std::size_t      quote_pos { text.find('"', i) };
+            std::size_t quote_pos { text.find('"', i) };
             std::string content;
 
             if (quote_pos == std::string::npos)
@@ -111,7 +111,7 @@ namespace parser
         [[nodiscard]]
         auto
         handle_substitution(const shared_tokens &tokens,
-                            std::size_t              &i,
+                            std::size_t         &i,
                             const std::string   &text) -> bool
         {
             if (text[i] != '{') return false;
@@ -181,7 +181,7 @@ namespace parser
         [[nodiscard]]
         auto
         handle_flag(const shared_tokens &tokens,
-                    std::size_t              &i,
+                    std::size_t         &i,
                     const std::string   &text) -> bool
         {
             if (i > 0 && (text[i] != '-' || std::isspace(text[i - 1]) == 0))
@@ -193,7 +193,7 @@ namespace parser
             if (i + 1 < LEN && text[i + 1] == '-')
             {
                 std::size_t len { 2 };
-                bool   after_eq { false };
+                bool        after_eq { false };
 
                 while (i + len < LEN && std::isspace(text[i + len]) == 0)
                 {
@@ -205,7 +205,7 @@ namespace parser
                 }
 
                 const std::string raw { text.substr(i, len) };
-                const std::size_t      eq_pos { raw.find('=') };
+                const std::size_t eq_pos { raw.find('=') };
                 auto [flag, param] { utils::str::split(raw, eq_pos) };
 
                 tokens->add_token(TokenType::FLAG, i, flag);
@@ -249,7 +249,7 @@ namespace parser
         [[nodiscard]]
         auto
         handle_arithmetic(const shared_tokens &tokens,
-                          std::size_t              &i,
+                          std::size_t         &i,
                           const std::string   &text) -> bool
         {
             if (text[i] != '{'
@@ -261,7 +261,7 @@ namespace parser
             tokens->add_token(TokenType::ARITHMETIC_BRACKET, i, "{{");
             i += 2;
 
-            for (std::size_t j { i }; j < text.length() - 1; ++j)
+            for (std::size_t j { i }; j < text.length() - 1; j++)
                 if (text[j] == '}')
                 {
                     end_idx = j;
@@ -291,6 +291,88 @@ namespace parser
             i += inner.length() + bracket.length();
             return true;
         }
+
+
+        [[nodiscard]]
+        auto
+        handle_conditional(const shared_tokens &tokens,
+                           std::size_t         &i,
+                           const std::string   &text) -> bool
+        {
+            if (text[i] != '(') return false;
+
+            tokens->add_token(TokenType::CONDITIONAL_BRACKET, i++, "(");
+            if (i >= text.length()) return true;
+
+            std::size_t content_start { i };
+
+            int depth { 1 };
+            while (i < text.length() && depth > 0)
+            {
+                if (text[i] == '(')
+                    depth++;
+                else if (text[i] == ')')
+                    depth--;
+                i++;
+            }
+
+            if (depth != 0)
+            {
+                std::string inner { utils::str::trim(
+                    text.substr(content_start)) };
+
+                if (!inner.empty())
+                {
+                    auto content { std::make_shared<TokenGroup>(inner,
+                                                                tokens) };
+                    tokens->add_token(TokenType::CONDITIONAL_CONTENT,
+                                      content_start, content);
+                }
+                return true;
+            }
+
+            std::size_t end_idx { i - 1 };
+            std::string inner { utils::str::trim(
+                text.substr(content_start, end_idx - content_start)) };
+
+            if (!inner.empty())
+            {
+                auto content_group { std::make_shared<TokenGroup>(inner,
+                                                                  tokens) };
+
+                std::size_t k { 0 };
+                while (k < inner.length())
+                {
+                    if (inner[k] == '(')
+                    {
+                        auto _ { handle_conditional(content_group, k, inner) };
+                        continue;
+                    }
+
+                    if (isspace(inner[k]) == 0)
+                    {
+                        std::size_t s { k };
+                        while (k < inner.length() && isspace(inner[k]) == 0
+                               && inner[k] != '(' && inner[k] != ')')
+                            k++;
+
+                        std::string expr { inner.substr(s, k - s) };
+                        content_group->add_token(
+                            TokenType::CONDITIONAL_EXPRESSION, s, expr);
+                        continue;
+                    }
+
+                    k++;
+                }
+
+                tokens->add_token(TokenType::CONDITIONAL_CONTENT, content_start,
+                                  content_group);
+            }
+
+            tokens->add_token(TokenType::CONDITIONAL_BRACKET, end_idx, ")");
+
+            return true;
+        }
     }
 
 
@@ -305,7 +387,9 @@ namespace parser
 
         if (std::string cmd { get_command(text) }; !cmd.empty())
             tokens->add_token(TokenType::COMMAND, 0, cmd);
-        std::size_t i { tokens->tokens.back().get_data<std::string>()->length() };
+        std::size_t i {
+            tokens->tokens.back().get_data<std::string>()->length()
+        };
 
         handle_argument(tokens, i, text);
 
@@ -316,6 +400,7 @@ namespace parser
 
             if (handle_string(tokens, i, text)) continue;
             if (handle_substitution(tokens, i, text)) continue;
+            if (handle_conditional(tokens, i, text)) continue;
             if (handle_flag(tokens, i, text)) continue;
             if (handle_arithmetic(tokens, i, text)) continue;
 

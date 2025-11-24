@@ -54,6 +54,18 @@ namespace parser
 
         /* an arithmetic expression (1 + 1, 3^4, ...) */
         ARITHMETIC_EXPRESSION,
+
+        /* '()'
+         * a bracket that encloses a CONDITIONAL_EXPRESSION */
+        CONDITIONAL_BRACKET,
+
+
+        /* the content contained inside a CONDITIONAL_BRACKET */
+        CONDITIONAL_CONTENT,
+
+        /* a conditional/boolean expression that will get evaluated
+         * !true || !value */
+        CONDITIONAL_EXPRESSION,
     };
 
 
@@ -81,6 +93,11 @@ namespace parser
         case TokenType::ARITHMETIC_BRACKET: return "Type::ARITHMETIC_BRACKET";
         case TokenType::ARITHMETIC_EXPRESSION:
             return "Type::ARITHMETIC_EXPRESSION";
+
+        case TokenType::CONDITIONAL_BRACKET: return "Type::CONDITIONAL_BRACKET";
+        case TokenType::CONDITIONAL_CONTENT: return "Type::CONDITIONAL_CONTENT";
+        case TokenType::CONDITIONAL_EXPRESSION:
+            return "Type::CONDITIONAL_EXPRESSION";
         };
         return "Type::UNKNOWN";
     }
@@ -138,7 +155,8 @@ namespace parser
          * @warning the function mutates member @e tokens
          */
         [[nodiscard]]
-        auto verify_syntax() -> std::optional<::error::Info>;
+        auto verify_syntax(bool conditional = false)
+            -> std::optional<::error::Info>;
 
 
         /**

@@ -42,6 +42,13 @@ namespace input::term
         [[nodiscard]]
         auto is_active() const -> bool;
 
+
+        [[nodiscard]]
+        static auto is_sigint_triggered() -> bool;
+
+
+        static void set_trigger_false();
+
     private:
         static Handler *m_handler_instance;
 
@@ -50,7 +57,7 @@ namespace input::term
 
         std::istream *m_stream;
         std::string   m_u8_buffer;
-        std::size_t        m_u8_expected_len;
+        std::size_t   m_u8_expected_len;
 
         std::string m_prompt;
 

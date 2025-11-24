@@ -342,18 +342,78 @@ namespace parser
 
             return std::nullopt;
         }
+
+
+        [[nodiscard]]
+        auto
+        check_conditional_bracket_token(TokenGroup              &tokens,
+                                        std::stack<std::size_t> &bracket_stack,
+                                        std::size_t              idx)
+            -> std::optional<::error::Info>
+        {
+            const auto &token { tokens.tokens[idx] };
+
+            if (token.type == TokenType::CONDITIONAL_BRACKET)
+            {
+                const std::string *text { token.get_data<std::string>() };
+                const char         bracket { (*text)[0] };
+
+                if (bracket == '(')
+                {
+                    bracket_stack.push(idx);
+
+                    if (idx + 1 < tokens.tokens.size()
+                        && tokens.tokens[idx + 1].type
+                               != TokenType::CONDITIONAL_CONTENT)
+                    {
+                        return error::create<error::Type::EMPTY_SUBSTITUTION>(
+                            tokens, tokens.tokens[idx],
+                            "substitution has no content");
+                    }
+
+                    auto       &content_token { tokens.tokens[idx + 1] };
+                    const auto *content_group {
+                        content_token.get_data<shared_tokens>()
+                    };
+
+                    if (content_group != nullptr
+                        && content_group->get()->tokens.empty())
+                    {
+                        return error::create<error::Type::EMPTY_CONDITIONAL>(
+                            tokens, content_token,
+                            "conditional content has no expressions");
+                    }
+                }
+                else if (bracket == ')')
+                {
+                    if (!bracket_stack.empty())
+                        bracket_stack.pop();
+                    else
+                    {
+                        /* unexpected closing bracket */
+                        return error::create<error::Type::UNCLOSED_BRACKET>(
+                            tokens, tokens.tokens[idx],
+                            "unmatched closing bracket");
+                    }
+                }
+            }
+
+            return std::nullopt;
+        }
     }
 
 
     auto
-    TokenGroup::verify_syntax() -> std::optional<::error::Info>
+    TokenGroup::verify_syntax(bool conditional) -> std::optional<::error::Info>
     {
         using enum TokenType;
 
-        if (auto err { verify_command(*this, this->tokens.front()) })
-            return err;
+        if (!conditional)
+            if (auto err { verify_command(*this, this->tokens.front()) })
+                return err;
 
         std::stack<std::size_t> bracket_stack;
+        std::stack<std::size_t> conditional_bracket_stack;
         std::size_t             quote_idx { std::string::npos };
 
         for (std::size_t i { 1 }; i < this->tokens.size(); i++)
@@ -367,22 +427,44 @@ namespace parser
                 if (res) return res;
             }
 
-            auto res { check_parameter_token(*this, i) };
-            if (res) return res;
+            if (this->tokens[i].type == CONDITIONAL_CONTENT)
+            {
+                auto res { this->tokens[i]
+                               .get_data<shared_tokens>()
+                               ->get()
+                               ->verify_syntax(true) };
+                if (res) return res;
+            }
 
-            res = check_string_quote_token(*this, quote_idx, i);
-            if (res) return res;
+            if (!conditional)
+            {
 
-            res = check_substitution_bracket_token(*this, bracket_stack, i);
-            if (res) return res;
+                auto res { check_parameter_token(*this, i) };
+                if (res) return res;
 
-            res = check_arithmetic_token(*this, i);
+                res = check_string_quote_token(*this, quote_idx, i);
+                if (res) return res;
+
+                res = check_substitution_bracket_token(*this, bracket_stack, i);
+                if (res) return res;
+
+                res = check_arithmetic_token(*this, i);
+                if (res) return res;
+            }
+
+            auto res { check_conditional_bracket_token(
+                *this, conditional_bracket_stack, i) };
             if (res) return res;
         }
 
         if (!bracket_stack.empty())
             return error::create<error::Type::UNCLOSED_BRACKET>(
                 *this, tokens[bracket_stack.top()], "unclosed bracket");
+
+        if (!conditional_bracket_stack.empty())
+            return error::create<error::Type::UNCLOSED_BRACKET>(
+                *this, tokens[conditional_bracket_stack.top()],
+                "unclosed bracket");
 
         if (quote_idx != std::string::npos)
             return error::create<error::Type::UNCLOSED_QUOTE>(

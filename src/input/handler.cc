@@ -17,6 +17,7 @@ auto
 Handler::read(std::string &str) -> std::size_t
 {
     str.clear();
+
     std::streambuf *pbuf { m_stream->rdbuf() };
 
     bool reading { true };
@@ -26,6 +27,17 @@ Handler::read(std::string &str) -> std::size_t
 
     while (reading)
     {
+        if (term::Handler::is_sigint_triggered())
+        {
+            term::Handler::set_trigger_false();
+            io::println("^C");
+            str.clear();
+            m_terminal_handler.reset();
+
+            reading = false;
+            continue;
+        }
+
         /* Theres no EOF, because ICANON is disabled, but if the shell is using
            a file as stdin, then there would be EOF.
         */
@@ -51,7 +63,6 @@ Handler::read(std::string &str) -> std::size_t
     }
 
     if (m_terminal_handler.is_active()) m_terminal_handler.reset();
-
     return str.length();
 }
 
@@ -68,7 +79,8 @@ Handler::exit(char code)
 {
     if (m_terminal_handler.is_active())
     {
-        const char *type { code == EOT ? "EOT" : (code == EOF ? "EOF" : "EXIT") };
+        const char *type { code == EOT ? "EOT"
+                                       : (code == EOF ? "EOF" : "EXIT") };
         io::println(std::cerr, "\n[{}]: {} ({})", type, APP_ID, APP_VERSION);
     }
     m_exit = true;

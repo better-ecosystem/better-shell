@@ -1,3 +1,4 @@
+#include <atomic>
 #include <csignal>
 #include <cwchar>
 #include <iostream>
@@ -15,6 +16,9 @@ using input::term::Handler;
 
 namespace
 {
+    std::atomic<bool> sigint_triggered { false };
+
+
     /**
      * reads an ANSI sequence from a stream buffer @p sbuf
      * ---------------------------------------------------
@@ -97,6 +101,20 @@ auto
 Handler::is_active() const -> bool
 {
     return m_is_term;
+}
+
+
+auto
+Handler::is_sigint_triggered() -> bool
+{
+    return sigint_triggered;
+}
+
+
+void
+Handler::set_trigger_false()
+{
+    sigint_triggered.exchange(false, std::memory_order_relaxed);
 }
 
 
@@ -428,9 +446,7 @@ Handler::sigint_handler(int sig)
 {
     if (sig == SIGINT && m_handler_instance != nullptr)
     {
-        if (!m_handler_instance->is_active()) return;
-
-        io::println("^C");
+        sigint_triggered.store(true, std::memory_order_relaxed);
         std::signal(SIGINT, Handler::sigint_handler);
     }
 }
