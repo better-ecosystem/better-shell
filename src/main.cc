@@ -182,10 +182,13 @@ main(int argc, char **argv) -> int
 
     auto command_flag { arg_parser.is_flag("command", 'c', true) };
 
-    std::unique_ptr<std::istream> stream;
+    int fd;
 
     if (!command_flag)
-        stream = std::make_unique<std::istream>(std::cin.rdbuf());
+    {
+        // Read from terminal / stdin
+        fd = STDIN_FILENO;
+    }
     else
     {
         const auto &args { arg_parser.get_args() };
@@ -199,10 +202,20 @@ main(int argc, char **argv) -> int
             return EINVAL;
         }
 
-        stream = std::make_unique<std::istringstream>(param);
+        std::array<int, 2> pipefd;
+        if (::pipe(pipefd.data()) < 0)
+        {
+            io::println("pipe(): {}", std::strerror(errno));
+            return errno;
+        }
+
+        ::write(pipefd[1], param.data(), param.size());
+        ::close(pipefd[1]);
+
+        fd = pipefd[0];
     }
 
-    input::Handler input { stream.get() };
+    input::Handler input { fd };
     std::string    text;
     std::string    source { command_flag ? "argv" : "stdin" };
 

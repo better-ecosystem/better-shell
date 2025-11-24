@@ -24,13 +24,12 @@ namespace input::term
     class Handler
     {
     public:
-        Handler(std::istream *stream);
+        Handler(int fd);
         ~Handler();
 
 
-        auto handle(const unsigned char &current,
-                    std::string         &str,
-                    std::streambuf      *sbuf) -> ReturnType;
+        auto handle(const unsigned char &current, std::string &str)
+            -> ReturnType;
 
 
         void reset();
@@ -55,9 +54,9 @@ namespace input::term
         std::unique_ptr<history::Handler> m_history;
         std::string                       m_current_text;
 
-        std::istream *m_stream;
-        std::string   m_u8_buffer;
-        std::size_t   m_u8_expected_len;
+        int         m_stream_fd;
+        std::string m_u8_buffer;
+        std::size_t m_u8_expected_len;
 
         std::string m_prompt;
 
@@ -86,7 +85,7 @@ namespace input::term
             -> bool;
 
 
-        auto handle_ansi(std::string &str, std::streambuf *sbuf) -> bool;
+        auto handle_ansi(std::string &str, int fd) -> bool;
 
 
         auto handle_history(Cursor::Direction direction,

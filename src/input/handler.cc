@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <unistd.h>
+
 #include "command/built_in.hh"
 #include "input/handler.hh"
 #include "print.hh"
@@ -7,8 +9,8 @@
 using input::Handler;
 
 
-Handler::Handler(std::istream *stream)
-    : m_stream(stream), m_exit(false), m_terminal_handler(stream)
+Handler::Handler(int fd)
+    : m_stream_fd(fd), m_exit(false), m_terminal_handler(fd)
 {
 }
 
@@ -17,8 +19,6 @@ auto
 Handler::read(std::string &str) -> std::size_t
 {
     str.clear();
-
-    std::streambuf *pbuf { m_stream->rdbuf() };
 
     bool reading { true };
     char c;
@@ -38,18 +38,24 @@ Handler::read(std::string &str) -> std::size_t
             continue;
         }
 
-        /* Theres no EOF, because ICANON is disabled, but if the shell is using
-           a file as stdin, then there would be EOF.
-        */
-        if (auto code { pbuf->sgetc() }; code == EOT || code == EOF)
+        ssize_t n { ::read(m_stream_fd, &c, 1) };
+
+        if (n == 0)
         {
-            this->exit(static_cast<char>(code));
+            this->exit(EOF);
             break;
         }
 
-        c = static_cast<char>(pbuf->sbumpc());
+        if (n < 0)
+        {
+            if (errno == EINTR)
+                continue;
 
-        switch (m_terminal_handler.handle(c, str, pbuf))
+            this->exit(EOF);
+            break;
+        }
+
+        switch (m_terminal_handler.handle(c, str))
         {
         case term::RETURN_CONTINUE: continue;
         case term::RETURN_EXIT:     this->exit(c);

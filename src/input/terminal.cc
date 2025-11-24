@@ -19,32 +19,46 @@ namespace
     std::atomic<bool> sigint_triggered { false };
 
 
+    auto
+    read_byte(int fd, char &out) -> bool
+    {
+        while (true)
+        {
+            ssize_t n = ::read(fd, &out, 1);
+            if (n == 1) return true;
+            if (n == 0) return false;
+            if (errno == EINTR) continue;
+            return false;
+        }
+    }
+
+
     /**
-     * reads an ANSI sequence from a stream buffer @p sbuf
-     * ---------------------------------------------------
+     * reads an ANSI sequence from a file descriptor @param fd
+     * -------------------------------------------------------
      *
      * returns an ANSI sequence starting from '[',
      * or an empty string on EOT/EOF
      */
     [[nodiscard]]
     auto
-    get_ansi_sequence(std::streambuf *sbuf) -> std::string
+    get_ansi_sequence(int fd) -> std::string
     {
-        std::array<char, 8> buff;
-        for (std::size_t i { 0 }; i < buff.size(); i++)
-        {
-            int c { sbuf->sgetc() };
-            if (c == EOT || c == EOF) return "";
+        char c;
 
-            buff[i] = static_cast<char>(sbuf->sbumpc());
-            if ((buff[i] >= 'A' && buff[i] <= 'Z') || buff[i] == '~')
-            {
-                buff[++i] = '\0';
-                break;
-            }
+        std::string seq;
+        seq.reserve(8);
+
+        while (seq.size() < 8)
+        {
+            if (!read_byte(fd, c)) return "";
+
+            seq.push_back(c);
+
+            if ((c >= 'A' && c <= 'Z') || c == '~') { return seq; }
         }
 
-        return buff.data();
+        return seq;
     }
 
 
@@ -67,11 +81,11 @@ namespace
 
 
 Handler *Handler::m_handler_instance { nullptr };
-Handler::Handler(std::istream *stream)
-    : m_stream(stream), m_highlight_start_pos(std::string::npos),
+Handler::Handler(int fd)
+    : m_stream_fd(fd), m_highlight_start_pos(std::string::npos),
       m_is_term(false)
 {
-    if (stream->rdbuf() == std::cin.rdbuf() && isatty(STDIN_FILENO) != 0)
+    if (fd == STDIN_FILENO)
     {
         tcgetattr(STDIN_FILENO, &m_old_term);
 
@@ -144,9 +158,7 @@ Handler::show_prompt()
 
 
 auto
-Handler::handle(const unsigned char &current,
-                std::string         &str,
-                std::streambuf      *sbuf) -> ReturnType
+Handler::handle(const unsigned char &current, std::string &str) -> ReturnType
 {
     if (!m_is_term) return RETURN_NONE;
 
@@ -169,7 +181,7 @@ Handler::handle(const unsigned char &current,
     /* ANSI escape code */
     if (current == '\033')
     {
-        if (!handle_ansi(str, sbuf)) return RETURN_EXIT;
+        if (!handle_ansi(str, m_stream_fd)) return RETURN_EXIT;
         return RETURN_CONTINUE;
     }
 
@@ -297,9 +309,9 @@ Handler::handle_backspace(std::string &str, bool ctrl)
 
 
 auto
-Handler::handle_ansi(std::string &str, std::streambuf *sbuf) -> bool
+Handler::handle_ansi(std::string &str, int fd) -> bool
 {
-    std::string seq { get_ansi_sequence(sbuf) };
+    std::string seq { get_ansi_sequence(fd) };
     if (seq.empty()) return false;
 
     const bool CTRL { utils::ansi::is_ctrl_pressed(seq) };
@@ -335,6 +347,7 @@ Handler::handle_ansi(std::string &str, std::streambuf *sbuf) -> bool
     {
         return m_pos.handle_home_end(home_end, str, CTRL);
     }
+
     return true;
 }
 

@@ -1,5 +1,4 @@
 #pragma once
-#include <istream>
 #include <string>
 
 #include <termios.h>
@@ -18,7 +17,7 @@ namespace input
          * handle shell input from @p stream
          * the class does not own the stream
          */
-        Handler(std::istream *stream);
+        Handler(int fd);
 
 
         /**
@@ -35,8 +34,8 @@ namespace input
 
 
     private:
-        std::istream *m_stream;
-        bool          m_exit;
+        int  m_stream_fd;
+        bool m_exit;
 
         term::Handler m_terminal_handler;
 
